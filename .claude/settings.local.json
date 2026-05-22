@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\\\\types\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\\\\data\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\\\\app\\\\components\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\\\\app\\\\api\\\\explain\")",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; $job = Start-Job -ScriptBlock { Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; npm run dev 2>&1 }; Start-Sleep -Seconds 12; Receive-Job $job; Stop-Job $job; Remove-Job $job)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; $job = Start-Job -ScriptBlock { Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; npm run dev 2>&1 }; Start-Sleep -Seconds 14; Receive-Job $job; Stop-Job $job; Remove-Job $job)"
+    ]
+  }
+}

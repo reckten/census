@@ -1,0 +1,33 @@
+{
+  "id": 2,
+  "caseId": "CASE-2024-08834",
+  "participantName": "Robert Chen",
+  "timestamp": "2024-01-15T14:47:00Z",
+  "customerMessage": "I think I need to start taking money out of my account. I'm turning 73 this year and someone told me I have to.",
+  "intent": "RMD_ELIGIBILITY_INQUIRY",
+  "confidence": 61,
+  "retrievedDocs": [
+    {
+      "name": "RMD Age Table (SECURE 2.0)",
+      "excerpt": "Under SECURE 2.0, the RMD starting age is 73 for individuals born between 1951-1959. The first RMD must be taken by April 1 of the year following the year you turn 73.",
+      "matchScore": 0.71
+    },
+    {
+      "name": "RMD Deferral Rules for Active Employees",
+      "excerpt": "Active employees who are not 5% owners may defer RMDs past age 73 until the year they retire, if the plan allows. Ownership percentage must be verified.",
+      "matchScore": 0.63
+    }
+  ],
+  "suggestedResponse": "It sounds like you may be approaching your Required Minimum Distribution (RMD) age. To confirm your specific requirements, I need to verify whether you're still employed and your ownership stake in the plan sponsor. Could you confirm your current employment status?",
+  "nextAction": "⚠️ Verify before sending — collect employment status and ownership % before confirming RMD obligation.",
+  "whyExplanationFallback": "The system detected an RMD eligibility inquiry but could only partially match two documents — the RMD Age Table and the Active Employee Deferral Rules — neither of which fully resolves the question without knowing the participant's employment status and ownership percentage. Because confidence fell to 61% (below the 70% threshold), a fallback clarifying response was generated to safely gather the missing context before confirming any RMD obligation.",
+  "trace": [
+    { "name": "Intent Classification", "status": "warning", "latencyMs": 55, "detail": "RMD_ELIGIBILITY_INQUIRY — ambiguous, missing: employment status, ownership %" },
+    { "name": "Knowledge Retrieval", "status": "warning", "latencyMs": 203, "docCount": 2, "detail": "2 partial matches — scores 0.71, 0.63 — neither fully resolves" },
+    { "name": "LLM Generation", "status": "success", "latencyMs": 712, "tokens": 204, "promptVersion": "v1.8 — RMD Triage" },
+    { "name": "CRM Lookup", "status": "success", "latencyMs": 198, "detail": "Participant record found" },
+    { "name": "Fallback Check", "status": "warning", "latencyMs": 9, "detail": "Partial fallback triggered — confidence 61% below 70% threshold" }
+  ],
+  "failureDomainTags": ["RETRIEVAL_AMBIGUOUS", "INTENT_LOW_CONFIDENCE"],
+  "promptVersion": "Prompt v1.8 — RMD Triage"
+}

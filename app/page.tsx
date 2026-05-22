@@ -1,65 +1,96 @@
-import Image from "next/image";
+'use client';
+import { useState } from 'react';
+import TopBar from '@/app/components/TopBar';
+import InteractionPanel from '@/app/components/InteractionPanel';
+import AssistPanel from '@/app/components/AssistPanel';
+import ExplainabilityPanel from '@/app/components/ExplainabilityPanel';
+import DebugPanel from '@/app/components/DebugPanel';
+import GlossaryModal from '@/app/components/GlossaryModal';
+import TrainingOverlay from '@/app/components/TrainingOverlay';
+import scenario1 from '@/data/scenario1.json';
+import scenario2 from '@/data/scenario2.json';
+import scenario3 from '@/data/scenario3.json';
+import { ScenarioData, Mode, ScenarioId } from '@/types';
+
+const scenarios: Record<ScenarioId, ScenarioData> = {
+  1: scenario1 as unknown as ScenarioData,
+  2: scenario2 as unknown as ScenarioData,
+  3: scenario3 as unknown as ScenarioData,
+};
+
+// Column span classes per mode
+// demo:     3 equal cols  — no debug panel
+// debug:    Interaction(narrow) | Assist(narrow) | Explain(medium) | Debug(wide)
+// training: 4 equal cols
+const gridClass: Record<Mode, string> = {
+  demo:     'lg:grid-cols-3',
+  debug:    'lg:grid-cols-[1fr_1fr_1fr_1.6fr]',
+  training: 'lg:grid-cols-4',
+};
 
 export default function Home() {
+  const [activeScenario, setActiveScenario] = useState<ScenarioId>(1);
+  const [mode, setMode] = useState<Mode>('demo');
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, string>>({});
+
+  const scenario = scenarios[activeScenario];
+
+  const handleFeedback = (type: 'helpful' | 'not-helpful' | 'escalate') => {
+    setFeedbackMap((prev) => ({ ...prev, [scenario.caseId]: type }));
+  };
+
+  // Debug mode: slightly higher-contrast root background
+  const rootBg = mode === 'debug' ? 'bg-[var(--ascensus-ink-2)]' : 'bg-[var(--ascensus-ink)]';
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className={`min-h-screen ${rootBg} text-[var(--ascensus-text)] flex flex-col transition-colors duration-200`}>
+      <TopBar
+        mode={mode}
+        setMode={setMode}
+        activeScenario={activeScenario}
+        setActiveScenario={setActiveScenario}
+        onGlossaryOpen={() => setGlossaryOpen(true)}
+      />
+
+      {/* Debug mode banner */}
+      {mode === 'debug' && (
+        <div className="bg-[#1a1200] border-b border-amber-700/50 px-4 py-1.5 text-amber-400 text-xs font-mono flex items-center gap-2 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block shrink-0 animate-pulse"></span>
+          <span className="font-semibold">ENGINEERING VIEW</span>
+          <span className="text-amber-600 mx-1">—</span>
+          Full pipeline trace active · Raw logs open · Error detail expanded
+        </div>
+      )}
+
+      {/* Panel grid */}
+      <div
+        className={`flex-1 grid grid-cols-1 ${gridClass[mode]} overflow-hidden`}
+        style={{ minHeight: 0 }}
+      >
+        <InteractionPanel scenario={scenario} mode={mode} />
+        <AssistPanel
+          scenario={scenario}
+          mode={mode}
+          onFeedback={handleFeedback}
+          feedbackState={feedbackMap[scenario.caseId]}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <ExplainabilityPanel
+          key={`explain-${activeScenario}`}
+          scenario={scenario}
+          mode={mode}
+        />
+        {/* Debug panel hidden entirely in Demo mode */}
+        {mode !== 'demo' && (
+          <DebugPanel scenario={scenario} mode={mode} />
+        )}
+      </div>
+
+      {/* Training overlay — pinned to bottom */}
+      {mode === 'training' && <TrainingOverlay scenario={scenario} />}
+
+      {/* Glossary modal */}
+      {glossaryOpen && <GlossaryModal onClose={() => setGlossaryOpen(false)} />}
     </div>
   );
 }

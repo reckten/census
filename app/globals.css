@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ascensus-ink: #121a25;
+  --ascensus-ink-2: #0d121b;
+  --ascensus-ink-3: #0a0f16;
+  --ascensus-panel: #141e2a;
+  --ascensus-panel-2: #182535;
+  --ascensus-border: #243244;
+  --ascensus-border-strong: #2f4056;
+  --ascensus-text: #e7eef2;
+  --ascensus-muted: #97a7b6;
+  --ascensus-teal: #01af94;
+  --ascensus-teal-soft: rgba(1, 175, 148, 0.16);
+  --ascensus-teal-border: rgba(1, 175, 148, 0.4);
+  --ascensus-teal-border-strong: rgba(1, 175, 148, 0.6);
+  --ascensus-rose: #be9076;
+  --ascensus-rose-soft: rgba(190, 144, 118, 0.18);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--ascensus-ink);
+  background-image:
+    radial-gradient(1200px 500px at 85% -10%, rgba(1, 175, 148, 0.12), transparent 60%),
+    radial-gradient(900px 400px at -10% 15%, rgba(190, 144, 118, 0.14), transparent 55%);
+  color: var(--ascensus-text);
+  font-family: var(--font-body), 'Segoe UI', sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), 'Times New Roman', serif;
+  letter-spacing: 0.01em;
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--ascensus-ink-3);
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3a4d;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #355068;
 }
