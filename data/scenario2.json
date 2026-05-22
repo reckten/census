@@ -25,7 +25,7 @@
     { "name": "Intent Classification", "status": "warning", "latencyMs": 55, "detail": "RMD_ELIGIBILITY_INQUIRY — ambiguous, missing: employment status, ownership %" },
     { "name": "Knowledge Retrieval", "status": "warning", "latencyMs": 203, "docCount": 2, "detail": "2 partial matches — scores 0.71, 0.63 — neither fully resolves" },
     { "name": "LLM Generation", "status": "success", "latencyMs": 712, "tokens": 204, "promptVersion": "v1.8 — RMD Triage" },
-    { "name": "CRM Lookup", "status": "success", "latencyMs": 198, "detail": "Participant record found" },
+    { "name": "Salesforce CRM Lookup", "status": "success", "latencyMs": 198, "detail": "Participant record found" },
     { "name": "Fallback Check", "status": "warning", "latencyMs": 9, "detail": "Partial fallback triggered — confidence 61% below 70% threshold" }
   ],
   "failureDomainTags": ["RETRIEVAL_AMBIGUOUS", "INTENT_LOW_CONFIDENCE"],

@@ -9,11 +9,18 @@ interface Props {
 }
 
 const TRAINING_NOTE =
-  "Agent Assist generates this — associate should verify before sending, especially when confidence is below 80%";
+  'Verify before sending — especially under 80% confidence';
+
+// ── Confidence helpers (thresholds: green ≥80, amber 60-79, red <60) ─────────
+function confidenceLevel(score: number): 'high' | 'medium' | 'low' {
+  if (score >= 80) return 'high';
+  if (score >= 60) return 'medium';
+  return 'low';
+}
 
 // In Demo mode: confidence badge is large, prominent, first-read focal point
 function DemoConfidenceBadge({ score }: { score: number }) {
-  const level = score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low';
+  const level = confidenceLevel(score);
   const cfg = {
     high:   { dot: 'bg-green-400',  ring: 'ring-green-600/40',  text: 'text-green-300',  border: 'border-green-700/50',  bg: 'bg-green-900/25',  label: 'High Confidence',   sub: 'Response ready to send' },
     medium: { dot: 'bg-amber-400',  ring: 'ring-amber-600/40',  text: 'text-amber-300',  border: 'border-amber-700/50',  bg: 'bg-amber-900/25',  label: 'Review Required',    sub: 'Verify before sending' },
@@ -21,14 +28,17 @@ function DemoConfidenceBadge({ score }: { score: number }) {
   }[level];
 
   return (
-    <div className={`${cfg.bg} ${cfg.border} border rounded-lg px-4 py-3`}>
+    <div className={`${cfg.bg} ${cfg.border} border rounded-lg px-5 py-4`}>
       <div className="flex items-center gap-3">
-        <div className={`w-3 h-3 rounded-full ${cfg.dot} ring-4 ${cfg.ring} shrink-0`}></div>
+        <div className={`w-4 h-4 rounded-full ${cfg.dot} ring-4 ${cfg.ring} shrink-0`}></div>
         <div>
-          <div className={`text-base font-bold ${cfg.text} leading-none`}>
-            {cfg.label} — {score}%
+          <div className={`text-lg font-bold ${cfg.text} leading-none tracking-tight`}>
+            {cfg.label}
           </div>
-          <div className="text-xs text-slate-400 mt-0.5">{cfg.sub}</div>
+          <div className={`text-2xl font-extrabold ${cfg.text} leading-none mt-1`}>
+            {score}%
+          </div>
+          <div className="text-xs text-slate-400 mt-1">{cfg.sub}</div>
         </div>
       </div>
     </div>
@@ -37,7 +47,7 @@ function DemoConfidenceBadge({ score }: { score: number }) {
 
 // In Debug / Training: compact badge
 function CompactConfidenceBadge({ score }: { score: number }) {
-  const level = score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low';
+  const level = confidenceLevel(score);
   const cfg = {
     high:   { dot: 'bg-green-400',  text: 'text-green-400',  border: 'border-green-700/60',  bg: 'bg-green-900/30',  label: 'High confidence' },
     medium: { dot: 'bg-amber-400',  text: 'text-amber-400',  border: 'border-amber-700/60',  bg: 'bg-amber-900/30',  label: 'Low confidence' },
@@ -100,7 +110,7 @@ export default function AssistPanel({ scenario, mode, onFeedback, feedbackState 
 
       <div className={`flex-1 flex flex-col overflow-y-auto ${isDemo ? 'p-5 gap-5' : 'p-4 gap-3'}`}>
 
-        {/* ── CONFIDENCE BADGE — first focal point in Demo ── */}
+        {/* ── CONFIDENCE BADGE — large focal point in Demo ── */}
         {isDemo
           ? <DemoConfidenceBadge score={scenario.confidence} />
           : <CompactConfidenceBadge score={scenario.confidence} />
@@ -171,7 +181,7 @@ export default function AssistPanel({ scenario, mode, onFeedback, feedbackState 
         {/* Feedback */}
         <div className="mt-auto">
           <div className={sectionLabelClass}>Associate Feedback</div>
-          <div className={`flex gap-2 ${isDemo ? '' : ''}`}>
+          <div className="flex gap-2">
             <button
               onClick={() => onFeedback('helpful')}
               className={`flex-1 rounded border font-medium transition-colors ${isDemo ? 'px-3 py-2.5 text-sm' : 'px-2 py-2 text-xs'} ${

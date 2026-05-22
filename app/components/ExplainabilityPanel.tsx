@@ -8,7 +8,7 @@ interface Props {
 }
 
 const TRAINING_NOTE =
-  'This shows WHY the system made this suggestion — use this to explain AI behavior to new associates';
+  'Use this to explain AI behavior to new associates';
 
 export default function ExplainabilityPanel({ scenario, mode }: Props) {
   const [explanation, setExplanation] = useState<string>('');
@@ -24,7 +24,8 @@ export default function ExplainabilityPanel({ scenario, mode }: Props) {
     setSource('fallback');
 
     const primaryDoc = scenario.retrievedDocs[0];
-    const responsePreview = scenario.suggestedResponse.substring(0, 80);
+    // Use first 60 chars per spec
+    const responsePreview = scenario.suggestedResponse.substring(0, 60);
 
     fetch('/api/explain', {
       method: 'POST',
@@ -53,6 +54,7 @@ export default function ExplainabilityPanel({ scenario, mode }: Props) {
       .finally(() => setLoading(false));
   }, [scenario.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Confidence color thresholds: green ≥80, amber 60-79, red <60
   const confidenceColor =
     scenario.confidence >= 80
       ? 'text-green-400'
@@ -147,7 +149,11 @@ export default function ExplainabilityPanel({ scenario, mode }: Props) {
                   {doc.matchScore !== undefined && (
                     <span
                       className={`text-xs font-mono shrink-0 ${
-                        doc.matchScore >= 0.8 ? 'text-green-400' : 'text-amber-400'
+                        doc.matchScore >= 0.8
+                          ? 'text-green-400'
+                          : doc.matchScore >= 0.6
+                          ? 'text-amber-400'
+                          : 'text-red-400'
                       }`}
                     >
                       {(doc.matchScore * 100).toFixed(0)}% match

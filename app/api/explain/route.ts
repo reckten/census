@@ -19,16 +19,16 @@ export async function POST(request: NextRequest) {
         'X-Title': 'Agent Assist Triage Console',
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-haiku-4-5',
+        model: 'anthropic/claude-3-haiku',
         messages: [
           {
             role: 'system',
             content:
-              'You are an AI system explainability assistant for an internal retirement plan support tool. Explain in 2-3 plain English sentences why the system generated this suggestion. Be specific about the intent detected, the document retrieved, and any confidence signals. Write for a non-technical support associate. Keep it concise and clear.',
+              'You are an AI explainability assistant for an internal retirement plan support tool called Agent Assist. Explain in 2-3 plain English sentences why the system generated this suggestion. Be specific. Write for a non-technical support associate, not an engineer.',
           },
           {
             role: 'user',
-            content: `Intent: ${intent}. Confidence: ${confidence}%. Retrieved document: ${docName}. Suggested response preview: "${responsePreview}". Explain why this suggestion was generated.`,
+            content: `Intent detected: ${intent}. Confidence: ${confidence}%. Retrieved document: ${docName}. Suggested response starts with: ${responsePreview}. Explain why this suggestion was generated.`,
           },
         ],
         max_tokens: 200,
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ explanation });
   } catch (err) {
     console.error('OpenRouter explain error:', err);
-    return NextResponse.json({ error: 'Failed to generate explanation' }, { status: 500 });
+    // Return empty so client silently falls back to fixture explanation
+    return NextResponse.json({ explanation: '' });
   }
 }

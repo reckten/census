@@ -14,16 +14,16 @@
     }
   ],
   "suggestedResponse": "I'd be happy to help with your beneficiary update. I'm having trouble accessing your account details right now. Please allow me to manually process this or transfer you to our account services team who can complete this securely.",
-  "nextAction": "🔴 Do not attempt online update — backend CRM unavailable. Escalate to account services or use manual form workflow (BDF-001).",
-  "whyExplanationFallback": "The system successfully identified a beneficiary update request with high confidence (89%) and retrieved the correct policy document. However, the CRM tool call failed with a timeout after 3002ms, which means the system cannot safely complete the update online. A safe fallback response was triggered to protect the participant's data integrity — the associate must use the manual form workflow or escalate to account services.",
+  "nextAction": "🔴 Do not attempt online update — Salesforce CRM unavailable. Escalate to account services or use manual form workflow (BDF-001).",
+  "whyExplanationFallback": "The system successfully identified a beneficiary update request with high confidence (89%) and retrieved the correct policy document. However, the Salesforce CRM tool call failed with a timeout after 3002ms, which means the system cannot safely complete the update online. A safe fallback response was triggered to protect the participant's data integrity — the associate must use the manual form workflow or escalate to account services.",
   "trace": [
     { "name": "Intent Classification", "status": "success", "latencyMs": 38, "detail": "BENEFICIARY_UPDATE_REQUEST" },
     { "name": "Knowledge Retrieval", "status": "success", "latencyMs": 145, "docCount": 1, "detail": "1 document retrieved, score 0.89" },
     { "name": "LLM Generation", "status": "success", "latencyMs": 589, "tokens": 163, "promptVersion": "v2.3 — Beneficiary Triage" },
-    { "name": "CRM Tool Call", "status": "failure", "latencyMs": 3002, "detail": "TOOL_CALL_FAILED", "errorCode": "TIMEOUT_3002MS", "errorDetail": "CRM write endpoint did not respond within 3000ms. Connection pool exhausted. Last successful call: 14 minutes ago." },
+    { "name": "Salesforce CRM Tool Call", "status": "failure", "latencyMs": 3002, "detail": "TOOL_CALL_FAILED", "errorCode": "TIMEOUT_3002MS", "errorDetail": "Salesforce CRM write endpoint did not respond within 3000ms. Connection pool exhausted. Last successful call: 14 minutes ago." },
     { "name": "Fallback Check", "status": "success", "latencyMs": 6, "detail": "Safe fallback triggered due to TOOL_CALL_FAILED" }
   ],
   "failureDomainTags": ["TOOL_CALL_FAILED", "FALLBACK_TRIGGERED"],
-  "knownIssuePattern": "CRM timeout — 3 occurrences this week",
+  "knownIssuePattern": "Salesforce CRM timeout — 3 occurrences this week",
   "promptVersion": "Prompt v2.3 — Beneficiary Triage"
 }

@@ -20,7 +20,7 @@
     { "name": "Intent Classification", "status": "success", "latencyMs": 42, "detail": "DISTRIBUTION_STATUS_CHECK" },
     { "name": "Knowledge Retrieval", "status": "success", "latencyMs": 118, "docCount": 1, "detail": "1 document retrieved, score 0.94" },
     { "name": "LLM Generation", "status": "success", "latencyMs": 634, "tokens": 187, "promptVersion": "v2.1 — Distribution Triage" },
-    { "name": "CRM Lookup", "status": "success", "latencyMs": 221, "detail": "Participant record found" },
+    { "name": "Salesforce CRM Lookup", "status": "success", "latencyMs": 221, "detail": "Participant record found" },
     { "name": "Fallback Check", "status": "skipped", "latencyMs": 8, "detail": "Not triggered — confidence above threshold" }
   ],
   "failureDomainTags": [],

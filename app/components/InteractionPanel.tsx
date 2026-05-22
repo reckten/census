@@ -14,7 +14,7 @@ function formatTime(iso: string) {
 }
 
 const TRAINING_NOTE =
-  'This is what the associate sees from the participant';
+  'What the associate sees from the participant';
 
 export default function InteractionPanel({ scenario, mode }: Props) {
   const isDebug = mode === 'debug';

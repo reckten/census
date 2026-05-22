@@ -18,13 +18,13 @@ const scenarios: Record<ScenarioId, ScenarioData> = {
   3: scenario3 as unknown as ScenarioData,
 };
 
-// Column span classes per mode
-// demo:     3 equal cols  — no debug panel
-// debug:    Interaction(narrow) | Assist(narrow) | Explain(medium) | Debug(wide)
+// Column span classes per mode:
+// demo:     3 equal cols — no debug panel (clean associate view)
+// debug:    Interaction(narrow) | Assist(narrower) | Explain(medium) | Debug(wide)
 // training: 4 equal cols
 const gridClass: Record<Mode, string> = {
   demo:     'lg:grid-cols-3',
-  debug:    'lg:grid-cols-[1fr_1fr_1fr_1.6fr]',
+  debug:    'lg:grid-cols-[1fr_0.85fr_1fr_1.8fr]',
   training: 'lg:grid-cols-4',
 };
 
@@ -60,6 +60,16 @@ export default function Home() {
           <span className="font-semibold">ENGINEERING VIEW</span>
           <span className="text-amber-600 mx-1">—</span>
           Full pipeline trace active · Raw logs open · Error detail expanded
+        </div>
+      )}
+
+      {/* Training mode banner */}
+      {mode === 'training' && (
+        <div className="bg-[var(--ascensus-teal-soft)] border-b border-[var(--ascensus-teal-border)] px-4 py-1.5 text-[var(--ascensus-teal)] text-xs flex items-center gap-2 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--ascensus-teal)] inline-block shrink-0"></span>
+          <span className="font-semibold">TRAINING MODE</span>
+          <span className="opacity-50 mx-1">—</span>
+          Panel annotations are coach&apos;s notes for new associates · Not visible in Demo or Debug
         </div>
       )}
 
