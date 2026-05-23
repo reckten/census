@@ -17,7 +17,9 @@
       "PowerShell(npx tsc --noEmit 2>&1)",
       "PowerShell(npx next build 2>&1)",
       "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse click *)",
-      "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse screenshot *)"
+      "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse screenshot *)",
+      "Bash(git push *)",
+      "Bash(npx vercel *)"
     ]
   }
 }
