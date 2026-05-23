@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import TopBar from '@/app/components/TopBar';
 import InteractionPanel from '@/app/components/InteractionPanel';
 import AssistPanel from '@/app/components/AssistPanel';
@@ -11,6 +11,8 @@ import scenario1 from '@/data/scenario1.json';
 import scenario2 from '@/data/scenario2.json';
 import scenario3 from '@/data/scenario3.json';
 import { ScenarioData, Mode, ScenarioId } from '@/types';
+import { langfuse } from '@/lib/langfuse';
+import type { LangfuseTraceClient } from 'langfuse-core';
 
 const scenarios: Record<ScenarioId, ScenarioData> = {
   1: scenario1 as unknown as ScenarioData,
@@ -34,10 +36,33 @@ export default function Home() {
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, string>>({});
 
+  // Hold the active Langfuse trace so feedback can score it
+  const activeTraceRef = useRef<LangfuseTraceClient | null>(null);
+
   const scenario = scenarios[activeScenario];
+
+  const handleTraceReady = (trace: LangfuseTraceClient) => {
+    activeTraceRef.current = trace;
+  };
 
   const handleFeedback = (type: 'helpful' | 'not-helpful' | 'escalate') => {
     setFeedbackMap((prev) => ({ ...prev, [scenario.caseId]: type }));
+
+    // ── 5. Score the trace when the associate clicks a feedback button ────────
+    try {
+      const trace = activeTraceRef.current;
+      if (trace) {
+        langfuse.score({
+          traceId: trace.id,
+          name: 'associate-feedback',
+          value: type === 'helpful' ? 1 : type === 'not-helpful' ? 0 : 0.5,
+          comment: type,
+        });
+        langfuse.flushAsync().catch(() => {});
+      }
+    } catch {
+      // Never let observability break the UI
+    }
   };
 
   // Debug mode: slightly higher-contrast root background
@@ -89,6 +114,7 @@ export default function Home() {
           key={`explain-${activeScenario}`}
           scenario={scenario}
           mode={mode}
+          onTraceReady={handleTraceReady}
         />
         {/* Debug panel hidden entirely in Demo mode */}
         {mode !== 'demo' && (

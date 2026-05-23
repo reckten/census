@@ -6,7 +6,16 @@
       "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\\\\app\\\\components\")",
       "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\\\\app\\\\api\\\\explain\")",
       "PowerShell(Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; $job = Start-Job -ScriptBlock { Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; npm run dev 2>&1 }; Start-Sleep -Seconds 12; Receive-Job $job; Stop-Job $job; Remove-Job $job)",
-      "PowerShell(Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; $job = Start-Job -ScriptBlock { Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; npm run dev 2>&1 }; Start-Sleep -Seconds 14; Receive-Job $job; Stop-Job $job; Remove-Job $job)"
+      "PowerShell(Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; $job = Start-Job -ScriptBlock { Set-Location \"C:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\"; npm run dev 2>&1 }; Start-Sleep -Seconds 14; Receive-Job $job; Stop-Job $job; Remove-Job $job)",
+      "Bash(npx next *)",
+      "Bash(Get-Content \"c:\\\\Users\\\\reckt\\\\Projects\\\\Ascensus\\\\data\\\\scenario3.json\")",
+      "Bash(Select-String \"CRM\")",
+      "Bash(npm install *)",
+      "Bash(npm list *)",
+      "PowerShell(netstat -ano)",
+      "PowerShell(npm list langfuse 2>&1)",
+      "PowerShell(npx tsc --noEmit 2>&1)",
+      "PowerShell(npx next build 2>&1)"
     ]
   }
 }
