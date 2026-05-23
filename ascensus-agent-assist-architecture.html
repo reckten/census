@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ascensus Agent Assist — Architecture Reference</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg-elev: #161922;
+    --bg-elev-2: #1c2030;
+    --border: #2a2f3e;
+    --border-strong: #3a4258;
+    --text: #d8dde8;
+    --text-dim: #8b93a7;
+    --text-faint: #5a6478;
+    --accent: #2E75B6;
+    --accent-soft: rgba(46, 117, 182, 0.15);
+    --green: #22c55e;
+    --green-soft: rgba(34, 197, 94, 0.12);
+    --amber: #f59e0b;
+    --amber-soft: rgba(245, 158, 11, 0.12);
+    --red: #ef4444;
+    --red-soft: rgba(239, 68, 68, 0.12);
+    --purple: #7c3aed;
+    --purple-soft: rgba(124, 58, 237, 0.15);
+    --teal: #0d9488;
+    --teal-soft: rgba(13, 148, 136, 0.15);
+    --blue-soft: rgba(46, 117, 182, 0.15);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .app {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 28px 80px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .header .sub {
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 12px 18px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.12s, border-color 0.12s;
+    font-weight: 500;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .tab .num {
+    font-family: var(--mono);
+    color: var(--text-faint);
+    margin-right: 8px;
+    font-size: 11px;
+  }
+  .tab.active .num { color: var(--accent); }
+
+  .panel { display: none; animation: fade 0.18s ease-out; }
+  .panel.active { display: block; }
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .panel-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .panel-subtitle {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  /* ===== TAB 1 — Layers ===== */
+  .layer-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .layer {
+    width: 100%;
+    max-width: 760px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .layer:hover { background: var(--bg-elev-2); }
+  .layer[data-color="blue"] { border-left-color: var(--accent); }
+  .layer[data-color="purple"] { border-left-color: var(--purple); }
+  .layer[data-color="teal"] { border-left-color: var(--teal); }
+
+  .layer-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .layer-label {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .layer-sub {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 0;
+  }
+  .layer-chev {
+    font-family: var(--mono);
+    color: var(--text-faint);
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .layer-detail {
+    display: none;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border);
+  }
+  .layer.open .layer-detail { display: block; }
+  .layer.open .layer-chev::after { content: "−"; }
+  .layer:not(.open) .layer-chev::after { content: "+"; }
+
+  .layer-detail-row {
+    margin-bottom: 12px;
+  }
+  .layer-detail-row:last-child { margin-bottom: 0; }
+  .layer-detail-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: 4px;
+  }
+  .layer-detail-body {
+    font-size: 13px;
+    color: var(--text);
+  }
+  .layer-detail-body ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    color: var(--text-dim);
+  }
+  .layer-detail-body ul li { margin-bottom: 2px; }
+
+  .layer-arrow {
+    color: var(--text-faint);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 6px 0;
+    line-height: 1;
+  }
+
+  .mental-model {
+    margin-top: 32px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .mental-model .pill {
+    padding: 6px 14px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+  }
+  .mental-model .sep {
+    color: var(--text-faint);
+    align-self: center;
+  }
+
+  /* ===== TAB 2 — Swimlane ===== */
+  .swimlane-wrap {
+    overflow-x: auto;
+    padding-bottom: 12px;
+  }
+  .swimlane {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 0;
+    min-width: 980px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-elev);
+    overflow: hidden;
+  }
+  .lane-label {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    background: var(--bg-elev-2);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    min-height: 90px;
+  }
+  .lane-track {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 90px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  .swimlane > div:nth-last-child(-n+2) { border-bottom: none; }
+
+  .step-node {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--green);
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.12s, transform 0.08s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 180px;
+    max-width: 260px;
+    position: relative;
+  }
+  .step-node:hover { background: #1f2535; }
+  .step-node:active { transform: scale(0.98); }
+  .step-num {
+    background: var(--green);
+    color: #062a13;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-label {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .step-arrow {
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: 14px;
+    opacity: 0.7;
+  }
+
+  /* Popover */
+  .popover {
+    position: absolute;
+    z-index: 30;
+    background: #1a1f2c;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 14px 16px;
+    min-width: 280px;
+    max-width: 340px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: none;
+  }
+  .popover.show { display: block; }
+  .popover-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--text);
+  }
+  .popover-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .popover-row:last-child { margin-bottom: 0; }
+  .popover-key {
+    font-family: var(--mono);
+    color: var(--text-faint);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    min-width: 80px;
+    padding-top: 1px;
+  }
+  .popover-val { color: var(--text-dim); flex: 1; }
+  .popover-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 14px;
+  }
+  .popover-close:hover { color: var(--text); }
+
+  /* ===== TAB 3 — Failure Domains ===== */
+  .fail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .fail-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .fail-card-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .fail-card[data-sev="amber"] .fail-card-head {
+    background: var(--amber-soft);
+    border-bottom-color: rgba(245, 158, 11, 0.3);
+  }
+  .fail-card[data-sev="red"] .fail-card-head {
+    background: var(--red-soft);
+    border-bottom-color: rgba(239, 68, 68, 0.3);
+  }
+  .fail-icon { font-size: 16px; }
+  .fail-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .fail-body { padding: 14px 16px; }
+  .fail-row { margin-bottom: 12px; }
+  .fail-row:last-child { margin-bottom: 0; }
+  .fail-row-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: 3px;
+  }
+  .fail-row-val {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .fail-row-val strong { color: var(--text); font-weight: 500; }
+
+  .diag-sequence-wrap {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px;
+  }
+  .diag-sequence-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+  }
+  .diag-sequence {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    position: relative;
+  }
+  .diag-step {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+    color: var(--text);
+    position: relative;
+  }
+  .diag-step:hover {
+    background: #232a3d;
+    border-color: var(--accent);
+  }
+  .diag-arrow {
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+
+  /* ===== TAB 4 — Tooling Stack ===== */
+  .tooling-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+  }
+  .tool-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tool-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .tool-card:hover { background: var(--bg-elev-2); }
+  .tool-card.active {
+    background: var(--bg-elev-2);
+    border-left-color: var(--accent);
+  }
+  .tool-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+  .tool-desc {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+  .tool-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.03em;
+  }
+
+  .tool-detail {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 24px;
+    align-self: flex-start;
+  }
+  .tool-detail-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .tool-detail-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 8px;
+    border-radius: 3px;
+    margin-bottom: 18px;
+    letter-spacing: 0.04em;
+  }
+  .tool-detail-section { margin-bottom: 16px; }
+  .tool-detail-section:last-child { margin-bottom: 0; }
+  .tool-detail-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .tool-detail-body {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+
+  /* ===== TAB 5 — Cheatsheet ===== */
+  .cheat-section {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .cheat-section-head {
+    padding: 14px 18px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-elev-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .cheat-section.closed .cheat-section-head { border-bottom-color: transparent; }
+  .cheat-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .cheat-section-title .idx {
+    font-family: var(--mono);
+    color: var(--text-faint);
+    font-size: 11px;
+    margin-right: 10px;
+  }
+  .cheat-chev {
+    font-family: var(--mono);
+    color: var(--text-faint);
+    font-size: 12px;
+  }
+  .cheat-section.closed .cheat-chev::after { content: "+"; }
+  .cheat-section:not(.closed) .cheat-chev::after { content: "−"; }
+  .cheat-section-body { padding: 18px 20px; }
+  .cheat-section.closed .cheat-section-body { display: none; }
+
+  .narrative-block {
+    background: rgba(46, 117, 182, 0.06);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 0 4px 4px 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--text);
+    margin: 0;
+    font-style: normal;
+  }
+
+  table.compact {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  table.compact th, table.compact td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.compact th {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    font-weight: 600;
+  }
+  table.compact td:first-child {
+    font-family: var(--mono);
+    color: var(--text);
+  }
+  table.compact tr:last-child td { border-bottom: none; }
+
+  .qa-item {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .qa-item:last-child { margin-bottom: 0; }
+  .qa-q {
+    padding: 10px 14px;
+    cursor: pointer;
+    color: var(--amber);
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .qa-q::after {
+    content: "+";
+    font-family: var(--mono);
+    color: var(--text-faint);
+  }
+  .qa-item.open .qa-q::after { content: "−"; }
+  .qa-a {
+    display: none;
+    padding: 0 14px 12px;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .qa-item.open .qa-a { display: block; }
+
+  .stack-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .stack-list li {
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .stack-list li:last-child { border-bottom: none; }
+  .stack-list strong {
+    color: var(--text);
+    font-weight: 600;
+    margin-right: 6px;
+  }
+
+  /* mono helpers */
+  code, .mono {
+    font-family: var(--mono);
+    font-size: 0.92em;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  /* Click-outside catch */
+  .popover-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+  }
+  .popover-overlay.show { display: block; }
+
+  @media (max-width: 760px) {
+    .tooling-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="eyebrow">Internal Engineering Reference</div>
+    <h1>Ascensus Agent Assist — Architecture &amp; Operations</h1>
+    <div class="sub">Three-layer stack · Failure domains · Diagnostic playbook</div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="t1"><span class="num">01</span>System Architecture</button>
+    <button class="tab" data-tab="t2"><span class="num">02</span>Call Flow</button>
+    <button class="tab" data-tab="t3"><span class="num">03</span>Failure Domains</button>
+    <button class="tab" data-tab="t4"><span class="num">04</span>Tooling Stack</button>
+    <button class="tab" data-tab="t5"><span class="num">05</span>Cheatsheet</button>
+  </nav>
+
+  <!-- ============ TAB 1 ============ -->
+  <section class="panel active" id="t1">
+    <h2 class="panel-title">The Three-Layer Stack</h2>
+    <p class="panel-subtitle">Each layer has a distinct role. Failures map cleanly to layers — that's why this picture matters.</p>
+
+    <div class="layer-stack">
+      <div class="layer" data-color="blue" data-layer="agent-assist">
+        <div class="layer-head">
+          <div>
+            <h3 class="layer-label">Agent Assist — What Associates See</h3>
+            <p class="layer-sub">The associate-facing tool. Real-time suggestions, knowledge retrieval, confidence scores, next actions.</p>
+          </div>
+          <span class="layer-chev"></span>
+        </div>
+        <div class="layer-detail">
+          <div class="layer-detail-row">
+            <div class="layer-detail-label">What it does</div>
+            <div class="layer-detail-body">The UI an Ascensus associate works in during a participant call. Surfaces suggested responses, retrieved policy snippets, confidence badges, and recommended next actions. Associate stays in control — they review, edit, and approve every outbound response.</div>
+          </div>
+          <div class="layer-detail-row">
+            <div class="layer-detail-label">Key capabilities</div>
+            <div class="layer-detail-body">
+              <ul>
+                <li>Real-time suggested response panel</li>
+                <li>Knowledge snippet retrieval with source citation</li>
+                <li>Confidence scores and amber/red warning badges</li>
+                <li>Next-action recommendations (e.g. "open beneficiary form in Salesforce CRM")</li>
+                <li>Inline edit + send</li>
+              </ul>
+            </div>
+          </div>
+          <div class="layer-detail-row">
+            <div class="layer-detail-label">Failure domain mapping</div>
+            <div class="layer-detail-body">Agent Assist itself rarely fails — it's a presentation layer. When something looks broken here, the root cause is almost always in ARK (retrieval, intent, tool calls) or downstream in Salesforce CRM / Chorus.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="layer-arrow">│<br>▼</div>
+
+      <div class="layer" data-color="purple" data-layer="ark">
+        <div class="layer-head">
+          <div>
+            <h3 class="layer-label">ARK — McKinsey Agentic Runtime</h3>
+            <p class="layer-sub">Deploys and manages AI agents, models, tool integrations, and memory. Built on Kubernetes. Powers the agents inside Agent Assist.</p>
+          </div>
+          <span class="layer-chev"></span>
+        </div>
+        <div class="layer-detail">
+          <div class="layer-detail-row">
+            <div class="layer-detail-label">What it does</div>
+            <div class="layer-detail-body">The runtime that hosts agents, routes intents, calls LLMs, executes tool integrations, and manages memory. Everything Agent Assist "thinks" runs here. Kubernetes-based — agents scale and deploy independently.</div>
+          </div>
+          <div class="layer-detail-row">
+            <div class="layer-detail-label">Key capabilities</div>
+            <div class="layer-detail-body">
+              <ul>
+                <li>Agent lifecycle management (deploy, version, roll back)</li>
+                <li>Intent classification and routing</li>
+                <li>Knowledge retrieval over policy corpora</li>
+                <li>Tool calls into Salesforce CRM, Chorus, and internal APIs</li>
+                <li>Memory and session state</li>
+                <li>LLM gateway</li>
+              </ul>
+            </div>
+          </div>
+          <div class="layer-detail-row">
+            <div class="layer-detail-label">Failure domain mapping</div>
+            <div class="layer-detail-body">Most failures live here: <code>RETRIEVAL_AMBIGUOUS</code>, <code>INTENT_LOW_CONFIDENCE</code>, <code>TOOL_CALL_FAILED</code>, <code>FALLBACK_TRIGGERED</code>. Diagnosed via Langfuse traces, cross-referenced with New Relic for infra signals.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="layer-arrow">│<br>▼</div>
+
+      <div class="layer" data-color="teal" data-layer="chorus">
+        <div class="layer-head">
+          <div>
+            <h3 class="layer-label">SS&amp;C Blue Prism Chorus — Operational Backbone</h3>
+            <p class="layer-sub">BPM platform. Manages business workflows, compliance tracking, case management, document handling. Executes the operational follow-through after AI recommends.</p>
+          </div>
+          <span class="layer-chev"></span>
+        </div>
+        <div class="layer-detail">
+          <div class="layer-detail-row">
+            <div class="layer-detail-label">What it does</div>
+            <div class="layer-detail-body">The system of record for case execution. After Agent Assist recommends and the associate approves, Chorus drives the workflow — assigning steps, tracking SLAs, capturing compliance artifacts, routing documents. The "did the work actually happen?" layer.</div>
+          </div>
+          <div class="layer-detail-row">
+            <div class="layer-detail-label">Key capabilities</div>
+            <div class="layer-detail-body">
+              <ul>
+                <li>Business process orchestration</li>
+                <li>Case management and SLA tracking</li>
+                <li>Compliance audit trail</li>
+                <li>Document handling and storage</li>
+                <li>Workflow assignment and escalation</li>
+              </ul>
+            </div>
+          </div>
+          <div class="layer-detail-row">
+            <div class="layer-detail-label">Failure domain mapping</div>
+            <div class="layer-detail-body">Chorus failures are operational, not AI — missing case state, stuck workflows, compliance gaps. Triaged in the Chorus operations console; rarely require Langfuse.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mental-model">
+      <span class="pill">ARK thinks</span>
+      <span class="sep">→</span>
+      <span class="pill">Agent Assist speaks</span>
+      <span class="sep">→</span>
+      <span class="pill">Chorus executes</span>
+    </div>
+  </section>
+
+  <!-- ============ TAB 2 ============ -->
+  <section class="panel" id="t2">
+    <h2 class="panel-title">Scenario 1 — Happy Path: Distribution Status Check</h2>
+    <p class="panel-subtitle">A clean call from intake to compliance log. Click any node for step detail.</p>
+
+    <div class="swimlane-wrap">
+      <div class="swimlane" id="swimlane">
+        <div class="lane-label">Participant</div>
+        <div class="lane-track" data-lane="participant"></div>
+
+        <div class="lane-label">Associate + Agent Assist</div>
+        <div class="lane-track" data-lane="associate"></div>
+
+        <div class="lane-label">ARK (Agent Engine)</div>
+        <div class="lane-track" data-lane="ark"></div>
+
+        <div class="lane-label">Salesforce CRM / Chorus</div>
+        <div class="lane-track" data-lane="crm"></div>
+      </div>
+    </div>
+
+    <div class="popover-overlay" id="popover-overlay"></div>
+  </section>
+
+  <!-- ============ TAB 3 ============ -->
+  <section class="panel" id="t3">
+    <h2 class="panel-title">Where Things Break — The Three Failure Domains</h2>
+    <p class="panel-subtitle">Every issue an associate-engineer triages maps to one of these. Knowing which one collapses the diagnostic time.</p>
+
+    <div class="fail-grid">
+      <div class="fail-card" data-sev="amber">
+        <div class="fail-card-head">
+          <span class="fail-icon">⚠️</span>
+          <span class="fail-tag">RETRIEVAL_AMBIGUOUS</span>
+        </div>
+        <div class="fail-body">
+          <div class="fail-row"><div class="fail-row-label">Domain</div><div class="fail-row-val">Knowledge Retrieval (ARK layer)</div></div>
+          <div class="fail-row"><div class="fail-row-label">What it looks like</div><div class="fail-row-val">Confidence drops below 80%. Two conflicting documents retrieved. Associate sees amber badge.</div></div>
+          <div class="fail-row"><div class="fail-row-label">Example</div><div class="fail-row-val">RMD eligibility — missing employment status and ownership %.</div></div>
+          <div class="fail-row"><div class="fail-row-label">How to find it</div><div class="fail-row-val">Langfuse trace — retrieval step, similarity score, chunk count.</div></div>
+          <div class="fail-row"><div class="fail-row-label">Fix</div><div class="fail-row-val">Add missing context docs, tune similarity threshold, improve query rewriting.</div></div>
+        </div>
+      </div>
+
+      <div class="fail-card" data-sev="red">
+        <div class="fail-card-head">
+          <span class="fail-icon">🔴</span>
+          <span class="fail-tag">TOOL_CALL_FAILED</span>
+        </div>
+        <div class="fail-body">
+          <div class="fail-row"><div class="fail-row-label">Domain</div><div class="fail-row-val">Salesforce CRM Tool Call (ARK → Salesforce)</div></div>
+          <div class="fail-row"><div class="fail-row-label">What it looks like</div><div class="fail-row-val"><code>FALLBACK_TRIGGERED</code>. Associate sees safe fallback message. Debug panel shows timeout.</div></div>
+          <div class="fail-row"><div class="fail-row-label">Example</div><div class="fail-row-val">Beneficiary update — Salesforce write call times out at 3002ms.</div></div>
+          <div class="fail-row"><div class="fail-row-label">How to find it</div><div class="fail-row-val">Langfuse trace — tool call step, latency, error payload. Cross-check New Relic.</div></div>
+          <div class="fail-row"><div class="fail-row-label">Fix</div><div class="fail-row-val">Structured Azure DevOps ticket. Tag as Known Issue Pattern if 3+ occurrences.</div></div>
+        </div>
+      </div>
+
+      <div class="fail-card" data-sev="amber">
+        <div class="fail-card-head">
+          <span class="fail-icon">⚠️</span>
+          <span class="fail-tag">INTENT_LOW_CONFIDENCE</span>
+        </div>
+        <div class="fail-body">
+          <div class="fail-row"><div class="fail-row-label">Domain</div><div class="fail-row-val">Intent Classification (ARK layer)</div></div>
+          <div class="fail-row"><div class="fail-row-label">What it looks like</div><div class="fail-row-val">Classifier confidence below threshold. System unsure which intent to route to.</div></div>
+          <div class="fail-row"><div class="fail-row-label">Example</div><div class="fail-row-val">Ambiguous question that could be hardship withdrawal or standard distribution.</div></div>
+          <div class="fail-row"><div class="fail-row-label">How to find it</div><div class="fail-row-val">Langfuse trace — intent step, raw confidence score.</div></div>
+          <div class="fail-row"><div class="fail-row-label">Fix</div><div class="fail-row-val">Add training examples for this intent, adjust classification threshold.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="diag-sequence-wrap">
+      <div class="diag-sequence-title">Diagnostic Sequence — What an Associate Engineer Actually Does</div>
+      <div class="diag-sequence" id="diag-sequence">
+        <span class="diag-step" data-diag="report">User reports bad answer</span>
+        <span class="diag-arrow">→</span>
+        <span class="diag-step" data-diag="trace">Pull Langfuse trace</span>
+        <span class="diag-arrow">→</span>
+        <span class="diag-step" data-diag="steps">Check each pipeline step</span>
+        <span class="diag-arrow">→</span>
+        <span class="diag-step" data-diag="domain">Identify failure domain</span>
+        <span class="diag-arrow">→</span>
+        <span class="diag-step" data-diag="ado">Document in Azure DevOps</span>
+        <span class="diag-arrow">→</span>
+        <span class="diag-step" data-diag="escalate">Escalate if recurring</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 4 ============ -->
+  <section class="panel" id="t4">
+    <h2 class="panel-title">The Observability &amp; Tooling Stack</h2>
+    <p class="panel-subtitle">What each tool is for, and how it slots into the diagnostic flow.</p>
+
+    <div class="tooling-grid">
+      <div class="tool-list" id="tool-list"></div>
+      <div class="tool-detail" id="tool-detail"></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 5 ============ -->
+  <section class="panel" id="t5">
+    <h2 class="panel-title">Key Talking Points — Quick Reference</h2>
+    <p class="panel-subtitle">Compressed cheatsheet for fast recall.</p>
+
+    <div class="cheat-section" data-cheat>
+      <div class="cheat-section-head">
+        <h3 class="cheat-section-title"><span class="idx">01</span>Your Core Narrative</h3>
+        <span class="cheat-chev"></span>
+      </div>
+      <div class="cheat-section-body">
+        <blockquote class="narrative-block">
+          Ascensus Agent Assist is a three-layer system. ARK — McKinsey's agentic runtime on Kubernetes — hosts the agents that think. Agent Assist is the associate-facing surface that speaks. Chorus, SS&amp;C Blue Prism's BPM platform, executes the operational follow-through. My job sits at the seam between them: when an associate flags a bad answer, I pull the Langfuse trace, walk the pipeline step by step — intent, retrieval, tool call, generation — identify which failure domain owns the issue, and document it in Azure DevOps. Recurring patterns get tagged as Known Issue Patterns and escalated. The discipline is precise: don't guess the layer, read the trace.
+        </blockquote>
+      </div>
+    </div>
+
+    <div class="cheat-section" data-cheat>
+      <div class="cheat-section-head">
+        <h3 class="cheat-section-title"><span class="idx">02</span>The Three Failure Domains</h3>
+        <span class="cheat-chev"></span>
+      </div>
+      <div class="cheat-section-body">
+        <table class="compact">
+          <thead>
+            <tr><th>Domain</th><th>Looks Like</th><th>First Place to Look</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>RETRIEVAL_AMBIGUOUS</td><td>Amber badge, conflicting docs, confidence &lt; 80%</td><td>Langfuse — retrieval step, similarity score</td></tr>
+            <tr><td>TOOL_CALL_FAILED</td><td>Fallback message, timeout, debug panel error</td><td>Langfuse tool call + New Relic latency</td></tr>
+            <tr><td>INTENT_LOW_CONFIDENCE</td><td>Ambiguous routing, hedged response</td><td>Langfuse — intent step, raw confidence</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="cheat-section" data-cheat>
+      <div class="cheat-section-head">
+        <h3 class="cheat-section-title"><span class="idx">03</span>Anticipated Questions</h3>
+        <span class="cheat-chev"></span>
+      </div>
+      <div class="cheat-section-body">
+        <div class="qa-item" data-qa>
+          <div class="qa-q">What's the difference between ARK and Agent Assist?</div>
+          <div class="qa-a">ARK is the runtime — Kubernetes-hosted agents, models, tool integrations, memory. Agent Assist is the UI an associate works in. ARK thinks, Agent Assist speaks. When Agent Assist looks broken, the cause is almost always in ARK or downstream.</div>
+        </div>
+        <div class="qa-item" data-qa>
+          <div class="qa-q">Walk me through how you'd diagnose a bad suggested response.</div>
+          <div class="qa-a">Pull the Langfuse trace for that turn. Walk the steps in order: intent classification (was confidence high?), retrieval (which docs, what similarity scores?), tool calls (did anything time out or 5xx?), LLM generation (was the prompt sane?). The first step that looks off is the failure domain. Cross-reference New Relic if I suspect an infra issue.</div>
+        </div>
+        <div class="qa-item" data-qa>
+          <div class="qa-q">What's a Known Issue Pattern and when do you tag one?</div>
+          <div class="qa-a">When the same failure shape recurs 3+ times — same intent, same retrieval gap, same tool timeout — I tag the Azure DevOps work item as a Known Issue Pattern. That promotes it from one-off triage to something the engineering team prioritizes structurally.</div>
+        </div>
+        <div class="qa-item" data-qa>
+          <div class="qa-q">Where does Chorus come in?</div>
+          <div class="qa-a">Chorus is the operational backbone. After the associate approves a recommendation, Chorus runs the actual business workflow — case management, SLA tracking, compliance artifacts, document routing. AI failures live in ARK; operational failures (stuck case, missed SLA) live in Chorus.</div>
+        </div>
+        <div class="qa-item" data-qa>
+          <div class="qa-q">How do you decide whether to escalate?</div>
+          <div class="qa-a">Two triggers: recurrence (3+ instances of the same pattern → Known Issue Pattern, escalate to the owning team) or severity (a single TOOL_CALL_FAILED that blocks a high-value flow like beneficiary updates → escalate immediately with the Langfuse trace and New Relic correlation attached).</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cheat-section" data-cheat>
+      <div class="cheat-section-head">
+        <h3 class="cheat-section-title"><span class="idx">04</span>The Stack in One Sentence Each</h3>
+        <span class="cheat-chev"></span>
+      </div>
+      <div class="cheat-section-body">
+        <ul class="stack-list">
+          <li><strong>Agent Assist</strong> — the associate-facing UI that surfaces AI suggestions, knowledge snippets, and next actions in real time.</li>
+          <li><strong>ARK</strong> — McKinsey's Kubernetes-based agentic runtime that hosts agents, intents, retrieval, tool calls, and memory.</li>
+          <li><strong>Chorus</strong> — SS&amp;C Blue Prism's BPM platform that drives case workflows, SLAs, and compliance after AI recommends.</li>
+          <li><strong>Langfuse</strong> — AI observability; the source of truth for tracing what happened inside any given turn.</li>
+          <li><strong>New Relic</strong> — infrastructure monitoring; correlates latency, errors, and resource health across services.</li>
+          <li><strong>Azure DevOps</strong> — where issues get documented, tagged, and prioritized — including Known Issue Patterns.</li>
+          <li><strong>Cursor</strong> — the IDE used for code-level investigation, fix prototyping, and config edits.</li>
+          <li><strong>Salesforce CRM</strong> — the integration point ARK reaches into for participant records and case state.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  // ===== Tab switching =====
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.panel');
+  tabs.forEach(t => {
+    t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById(t.dataset.tab).classList.add('active');
+      closeAllPopovers();
+    });
+  });
+
+  // ===== Tab 1 — Layer expand =====
+  document.querySelectorAll('.layer').forEach(l => {
+    l.addEventListener('click', () => l.classList.toggle('open'));
+    l.tabIndex = 0;
+    l.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        l.classList.toggle('open');
+      }
+    });
+  });
+
+  // ===== Tab 2 — Swimlane steps =====
+  const steps = [
+    { n: 1, lane: 'participant', label: 'Calls in — "What\'s the status of my distribution?"',
+      owner: 'Participant', latency: '—',
+      failure: 'N/A — origin of the call.' },
+    { n: 2, lane: 'associate', label: 'Associate opens case in Agent Assist',
+      owner: 'Associate / Agent Assist UI', latency: '~120ms',
+      failure: 'UI load failure — rare; surfaces as blank panel.' },
+    { n: 3, lane: 'ark', label: 'Intent Classification — DISTRIBUTION_STATUS_CHECK, 94%',
+      owner: 'ARK — Intent service', latency: '~180ms',
+      failure: 'INTENT_LOW_CONFIDENCE — ambiguous routing, hedged downstream output.' },
+    { n: 4, lane: 'ark', label: 'Knowledge Retrieval — Distribution Processing Policy, 0.94',
+      owner: 'ARK — Retrieval service', latency: '~340ms',
+      failure: 'RETRIEVAL_AMBIGUOUS — low similarity, conflicting chunks, amber badge.' },
+    { n: 5, lane: 'crm', label: 'Salesforce CRM Lookup — participant record found',
+      owner: 'Salesforce CRM (via ARK tool call)', latency: '~420ms',
+      failure: 'TOOL_CALL_FAILED — timeout or 5xx → FALLBACK_TRIGGERED.' },
+    { n: 6, lane: 'ark', label: 'LLM Generation — suggested response drafted',
+      owner: 'ARK — LLM gateway', latency: '~1.2s',
+      failure: 'Generation drift / refusal — caught by post-gen guardrails.' },
+    { n: 7, lane: 'associate', label: 'Agent Assist displays suggestion + next action',
+      owner: 'Agent Assist UI', latency: '~80ms',
+      failure: 'Render delay — usually a symptom of upstream slowness.' },
+    { n: 8, lane: 'associate', label: 'Associate reviews, edits, sends response',
+      owner: 'Associate', latency: 'human-in-the-loop',
+      failure: 'Associate override not captured — telemetry gap.' },
+    { n: 9, lane: 'chorus', label: 'Chorus logs case outcome + compliance record',
+      owner: 'Chorus (BPM)', latency: '~250ms',
+      failure: 'Workflow stall — case stuck in queue; surfaces in Chorus ops console, not Langfuse.' },
+  ];
+
+  function buildSwimlane() {
+    const lanes = {
+      participant: document.querySelector('[data-lane="participant"]'),
+      associate: document.querySelector('[data-lane="associate"]'),
+      ark: document.querySelector('[data-lane="ark"]'),
+      crm: document.querySelector('[data-lane="crm"]'),
+      chorus: document.querySelector('[data-lane="chorus"]'),
+    };
+    // Map "chorus" lane to crm track (combined lane in spec)
+    lanes.chorus = lanes.crm;
+
+    // We'll add steps in order; arrows shown between consecutive steps within the same lane visually.
+    // For cross-lane flow, the visual cue is the increasing step number.
+    let prevLane = null;
+    steps.forEach((s, idx) => {
+      const node = document.createElement('div');
+      node.className = 'step-node';
+      node.dataset.step = s.n;
+      node.tabIndex = 0;
+      node.innerHTML = `<span class="step-num">${s.n}</span><span class="step-label">${s.label}</span>`;
+      node.addEventListener('click', e => {
+        e.stopPropagation();
+        showPopover(node, s);
+      });
+      node.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          showPopover(node, s);
+        }
+      });
+      lanes[s.lane].appendChild(node);
+      if (idx < steps.length - 1 && steps[idx + 1].lane === s.lane) {
+        const arr = document.createElement('span');
+        arr.className = 'step-arrow';
+        arr.textContent = '→';
+        lanes[s.lane].appendChild(arr);
+      }
+      prevLane = s.lane;
+    });
+  }
+  buildSwimlane();
+
+  // Popover
+  let activePopover = null;
+  const overlay = document.getElementById('popover-overlay');
+  function showPopover(anchor, step) {
+    closeAllPopovers();
+    const pop = document.createElement('div');
+    pop.className = 'popover show';
+    pop.innerHTML = `
+      <button class="popover-close" aria-label="Close">✕</button>
+      <div class="popover-title">Step ${step.n} — ${step.label}</div>
+      <div class="popover-row"><div class="popover-key">Owner</div><div class="popover-val">${step.owner}</div></div>
+      <div class="popover-row"><div class="popover-key">Latency</div><div class="popover-val">${step.latency}</div></div>
+      <div class="popover-row"><div class="popover-key">Failure here</div><div class="popover-val">${step.failure}</div></div>
+    `;
+    anchor.appendChild(pop);
+    // Position: append inside step-node so it sits relative.
+    pop.style.position = 'absolute';
+    pop.style.top = '110%';
+    pop.style.left = '0';
+    activePopover = pop;
+    overlay.classList.add('show');
+    pop.querySelector('.popover-close').addEventListener('click', e => {
+      e.stopPropagation();
+      closeAllPopovers();
+    });
+  }
+  function closeAllPopovers() {
+    document.querySelectorAll('.popover').forEach(p => p.remove());
+    overlay.classList.remove('show');
+    activePopover = null;
+  }
+  overlay.addEventListener('click', closeAllPopovers);
+  document.addEventListener('click', e => {
+    if (activePopover && !activePopover.contains(e.target) && !e.target.closest('.step-node')) {
+      closeAllPopovers();
+    }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeAllPopovers();
+  });
+
+  // ===== Tab 3 — Diagnostic sequence tooltips =====
+  const diagDetail = {
+    report: 'Associate flags a turn in Agent Assist or a ticket lands. Capture: the case ID, turn timestamp, what the associate expected vs. what they saw.',
+    trace: 'Open Langfuse, filter by case ID or session ID. Pull the trace for the specific turn. Each step (intent, retrieval, tool, generation) is its own span.',
+    steps: 'Walk spans in order. Look at intent confidence first, then retrieval similarity scores and chunk count, then tool call latencies and error payloads, then the generation prompt and output.',
+    domain: 'The first span that looks wrong wins. Tag it: RETRIEVAL_AMBIGUOUS, INTENT_LOW_CONFIDENCE, TOOL_CALL_FAILED, or FALLBACK_TRIGGERED.',
+    ado: 'Open an Azure DevOps work item. Title = failure domain + intent. Body = trace link, repro steps, expected vs actual, the Langfuse span screenshot. Tag the failure domain.',
+    escalate: 'If you see the same pattern 3+ times, tag the work item as a Known Issue Pattern and route to the owning team (retrieval, agents, or platform). For high-severity single instances, escalate immediately.',
+  };
+  document.querySelectorAll('.diag-step').forEach(s => {
+    s.tabIndex = 0;
+    s.addEventListener('click', e => {
+      e.stopPropagation();
+      closeAllPopovers();
+      const pop = document.createElement('div');
+      pop.className = 'popover show';
+      pop.style.position = 'absolute';
+      pop.style.top = '110%';
+      pop.style.left = '0';
+      pop.innerHTML = `
+        <button class="popover-close" aria-label="Close">✕</button>
+        <div class="popover-title">${s.textContent}</div>
+        <div class="popover-row"><div class="popover-val">${diagDetail[s.dataset.diag]}</div></div>
+      `;
+      s.style.position = 'relative';
+      s.appendChild(pop);
+      activePopover = pop;
+      overlay.classList.add('show');
+      pop.querySelector('.popover-close').addEventListener('click', ev => {
+        ev.stopPropagation();
+        closeAllPopovers();
+      });
+    });
+    s.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); s.click(); }
+    });
+  });
+
+  // ===== Tab 4 — Tools =====
+  const tools = [
+    {
+      id: 'langfuse',
+      name: 'Langfuse',
+      desc: 'Trace every step of every agent turn.',
+      tag: 'AI Observability',
+      what: 'Open-source LLM observability platform. Captures full traces of agent runs — intents, retrieval calls, tool invocations, LLM prompts and completions. The single source of truth when an Agent Assist response looks wrong.',
+      when: 'Always your first stop when triaging a flagged response. Open Langfuse, find the trace by case ID or session ID, and walk the spans in order.',
+      look: 'Intent confidence scores. Retrieval similarity scores and chunk counts. Tool call latency and error payloads. The LLM prompt and raw completion. Anything that looks anomalous in any single span.',
+      connects: 'Trace IDs cross-reference into New Relic for infra correlation. Bad-trace links get pasted directly into Azure DevOps work items. The "what happened in the AI layer" lens — pair it with New Relic for "what happened in infra."',
+    },
+    {
+      id: 'newrelic',
+      name: 'New Relic',
+      desc: 'Infra and service health monitoring.',
+      tag: 'Infra Monitoring',
+      what: 'Application performance monitoring across the ARK Kubernetes cluster, Salesforce CRM integration endpoints, and supporting services. Captures latency, error rates, resource saturation, and traces at the service-to-service level.',
+      when: 'When a Langfuse trace shows a TOOL_CALL_FAILED or unusual latency and you need to know whether the cause is the agent or the infrastructure underneath it.',
+      look: 'p95/p99 latency on the affected service. Error rate spikes. Pod restarts or memory pressure. Downstream dependency health (Salesforce CRM API, internal services).',
+      connects: 'Pair with Langfuse traces using timestamps and request IDs. New Relic answers "is this an infra problem?" once Langfuse has narrowed the failure domain.',
+    },
+    {
+      id: 'ado',
+      name: 'Azure DevOps',
+      desc: 'Issue tracking, Known Issue Patterns, escalation.',
+      tag: 'Ticketing',
+      what: 'The work-tracking system. Every triaged failure ends up here as a structured work item — failure domain tag, Langfuse trace link, repro steps, expected vs actual.',
+      when: 'After you\'ve identified the failure domain in Langfuse. Document the issue immediately, even if it\'s a one-off — pattern detection depends on having a clean record.',
+      look: 'Existing items in the same failure domain with the same intent or tool. If you see 2+ open or recent items matching the pattern, this one becomes #3 and gets the Known Issue Pattern tag.',
+      connects: 'Receives Langfuse trace links. Routes to the owning team (retrieval, agents, platform). Known Issue Pattern items feed engineering prioritization.',
+    },
+    {
+      id: 'cursor',
+      name: 'Cursor',
+      desc: 'IDE for code investigation and fix prototyping.',
+      tag: 'Dev Tooling',
+      what: 'AI-augmented IDE used for reading agent code, prototyping fixes, and editing prompt or config files.',
+      when: 'When triage identifies a specific code path — a prompt template, a retrieval config, a tool wrapper — and you need to inspect or propose a change.',
+      look: 'The relevant agent config or prompt file. Search across the repo for the failure tag or the affected intent name. Diff against recent changes.',
+      connects: 'Consumes Langfuse trace context to pinpoint which code path ran. Output: a branch and a PR linked back to the Azure DevOps work item.',
+    },
+    {
+      id: 'salesforce',
+      name: 'Salesforce CRM',
+      desc: 'Participant records, case state, write integration target.',
+      tag: 'CRM',
+      what: 'The system of record for participant data. ARK calls into it for reads (lookups, case state) and writes (updates, status changes) via tool integrations.',
+      when: 'When a TOOL_CALL_FAILED span points at a Salesforce endpoint, or when a retrieval depends on participant context that didn\'t load.',
+      look: 'API call logs on the Salesforce side. Rate limiting, auth issues, schema drift in the response payload, or downstream Salesforce outages.',
+      connects: 'The most common external failure point for ARK tool calls. Failures here surface as TOOL_CALL_FAILED in Langfuse and latency spikes in New Relic.',
+    },
+    {
+      id: 'ark-dash',
+      name: 'ARK Dashboard',
+      desc: 'Agent deployments, model versions, health.',
+      tag: 'Agent Runtime',
+      what: 'The McKinsey ARK control plane. Shows deployed agents, model versions, tool integrations, memory backends, and rollout state across the Kubernetes cluster.',
+      when: 'When a failure pattern correlates with a recent deploy, model swap, or agent rollout. Also for verifying that a fix has actually shipped.',
+      look: 'Recent deploys and their timestamps. Agent version pinning. Model gateway status. Tool integration health.',
+      connects: 'Deploys here cause behavior changes that show up in Langfuse traces. Cross-reference rollout timestamps with the first occurrence of a new failure pattern.',
+    },
+    {
+      id: 'chorus-ops',
+      name: 'Chorus Operations Console',
+      desc: 'BPM workflow state, stuck cases, compliance audit.',
+      tag: 'BPM',
+      what: 'The Chorus operator UI. Shows active cases, workflow state, SLA timers, and compliance artifacts. The view into "did the operational work actually happen?"',
+      when: 'When an issue isn\'t about AI quality — it\'s about a case that\'s stuck, a missed SLA, or a missing compliance record. These almost never need Langfuse.',
+      look: 'Cases sitting in a queue beyond SLA. Workflow steps that failed to advance. Missing or incomplete compliance artifacts.',
+      connects: 'Downstream of every Agent Assist interaction. When AI looks fine but the outcome didn\'t happen, the answer is here.',
+    },
+  ];
+
+  const toolList = document.getElementById('tool-list');
+  const toolDetail = document.getElementById('tool-detail');
+
+  function renderTools(activeId) {
+    toolList.innerHTML = '';
+    tools.forEach(t => {
+      const c = document.createElement('div');
+      c.className = 'tool-card' + (t.id === activeId ? ' active' : '');
+      c.tabIndex = 0;
+      c.innerHTML = `
+        <div class="tool-name">${t.name}</div>
+        <div class="tool-desc">${t.desc}</div>
+        <span class="tool-tag">${t.tag}</span>
+      `;
+      c.addEventListener('click', () => renderTools(t.id));
+      c.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); renderTools(t.id); }
+      });
+      toolList.appendChild(c);
+    });
+    const t = tools.find(x => x.id === activeId);
+    toolDetail.innerHTML = `
+      <h3 class="tool-detail-name">${t.name}</h3>
+      <span class="tool-detail-tag">${t.tag}</span>
+      <div class="tool-detail-section">
+        <div class="tool-detail-label">What it is</div>
+        <div class="tool-detail-body">${t.what}</div>
+      </div>
+      <div class="tool-detail-section">
+        <div class="tool-detail-label">When you use it</div>
+        <div class="tool-detail-body">${t.when}</div>
+      </div>
+      <div class="tool-detail-section">
+        <div class="tool-detail-label">What you look for</div>
+        <div class="tool-detail-body">${t.look}</div>
+      </div>
+      <div class="tool-detail-section">
+        <div class="tool-detail-label">How it connects</div>
+        <div class="tool-detail-body">${t.connects}</div>
+      </div>
+    `;
+  }
+  renderTools('langfuse');
+
+  // ===== Tab 5 — Cheatsheet collapsibles =====
+  document.querySelectorAll('[data-cheat]').forEach(s => {
+    const head = s.querySelector('.cheat-section-head');
+    head.tabIndex = 0;
+    head.addEventListener('click', () => s.classList.toggle('closed'));
+    head.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); s.classList.toggle('closed'); }
+    });
+  });
+  document.querySelectorAll('[data-qa]').forEach(q => {
+    const qq = q.querySelector('.qa-q');
+    qq.tabIndex = 0;
+    qq.addEventListener('click', () => q.classList.toggle('open'));
+    qq.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); q.classList.toggle('open'); }
+    });
+  });
+</script>
+</body>
+</html>

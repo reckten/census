@@ -19,7 +19,9 @@
       "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse click *)",
       "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse screenshot *)",
       "Bash(git push *)",
-      "Bash(npx vercel *)"
+      "Bash(npx vercel *)",
+      "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse goto *)",
+      "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse select *)"
     ]
   }
 }
