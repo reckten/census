@@ -25,7 +25,24 @@
       "Skill(browse)",
       "Skill(browse:*)",
       "Bash(npx tsc *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(vercel --version)",
+      "Bash(vercel ls *)",
+      "Bash(vercel inspect *)",
+      "Bash(curl -sI https://ascensus-amber.vercel.app/)",
+      "Bash(curl -s https://ascensus-amber.vercel.app/)",
+      "Bash(curl -s \"https://ascensus-amber.vercel.app/?cb=$\\(date +%s\\)\" -H \"Cache-Control: no-cache\" -H \"Pragma: no-cache\")",
+      "Read(//tmp/**)",
+      "Bash(vercel project *)",
+      "Bash(vercel git *)",
+      "Read(//c/Users/reckt/.local/share/com.vercel.cli/**)",
+      "Bash(curl -s \"https://api.vercel.com/v9/projects/prj_QVxdiwxKo3hCXFCW5lKQrrulRU5c\" -H \"Authorization: Bearer $\\(cat ~/.local/share/com.vercel.cli/auth.json)",
+      "Bash(curl -sI \"https://ascensus-amber.vercel.app/?v=$\\(date +%s%N\\)\")",
+      "Bash(npx playwright *)",
+      "Bash(ls \"C:\\\\Users\\\\reckt\\\\AppData\\\\Local\\\\ms-playwright\" 2>/dev/null | head -20; echo \"---\"; npx playwright install --dry-run chromium 2>&1 | head -20)",
+      "Read(//c/Users/reckt/AppData/Local/ms-playwright/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(node walkthrough/capture.mjs)"
     ]
   }
 }

@@ -21,11 +21,13 @@ const scenarios: Record<ScenarioId, ScenarioData> = {
 // Column span classes per mode:
 // demo:     3 equal cols — no debug panel (clean associate view)
 // debug:    Interaction(narrow) | Assist(narrower) | Explain(medium) | Debug(wide)
-// training: 4 equal cols
+// training: 3 equal cols — associate-facing, debug panel hidden (engineering
+//           trace data would drown out the AI-literacy signals new associates
+//           are being taught to read)
 const gridClass: Record<Mode, string> = {
   demo:     'lg:grid-cols-3',
   debug:    'lg:grid-cols-[1fr_0.85fr_1fr_1.8fr]',
-  training: 'lg:grid-cols-4',
+  training: 'lg:grid-cols-3',
 };
 
 export default function Home() {
@@ -120,8 +122,9 @@ export default function Home() {
           mode={mode}
           onTraceReady={handleTraceReady}
         />
-        {/* Debug panel hidden entirely in Demo mode */}
-        {mode !== 'demo' && (
+        {/* Debug panel: engineering-only view. Hidden in Demo and Training because
+            associates don't need (and shouldn't be confused by) pipeline internals. */}
+        {mode === 'debug' && (
           <DebugPanel scenario={scenario} mode={mode} traceId={activeTraceId} />
         )}
       </div>
