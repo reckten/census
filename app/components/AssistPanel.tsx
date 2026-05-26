@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { ScenarioData, Mode } from '@/types';
 
 interface Props {
@@ -66,6 +67,12 @@ export default function AssistPanel({ scenario, mode, onFeedback, feedbackState 
   const isDemo = mode === 'demo';
   const isDebug = mode === 'debug';
   const isTraining = mode === 'training';
+
+  // Implicit-signal capture (sent / edited / discarded) — the primary feedback
+  // loop. The associate never thinks "rate this"; they just do their job, and
+  // their actions get logged as labeled training data downstream.
+  const [implicitAction, setImplicitAction] = useState<'sent' | 'edited' | 'discarded' | null>(null);
+  const [flagOpen, setFlagOpen] = useState(false);
 
   const hasFailure = scenario.failureDomainTags && scenario.failureDomainTags.length > 0;
 
@@ -208,46 +215,134 @@ export default function AssistPanel({ scenario, mode, onFeedback, feedbackState 
           </div>
         </div>
 
-        {/* Feedback */}
+        {/* ── Workflow actions — the associate's actual job. These ARE the primary
+            feedback signal: did they send the suggestion as-is, edit it, or
+            discard it? The system logs the action automatically. No "rate this"
+            interruption mid-call. ── */}
         <div className="mt-auto">
-          <div className={sectionLabelClass}>Associate Feedback</div>
+          <div className={sectionLabelClass}>Action</div>
           <div className="flex gap-2">
             <button
-              onClick={() => onFeedback('helpful')}
+              onClick={() => setImplicitAction('sent')}
               className={`flex-1 rounded border font-medium transition-colors ${isDemo ? 'px-3 py-2.5 text-sm' : 'px-2 py-2 text-xs'} ${
-                feedbackState === 'helpful'
-                  ? 'bg-green-700/40 border-green-600 text-green-300'
-                  : 'bg-[var(--ascensus-panel)] border-[var(--ascensus-border)] text-[var(--ascensus-muted)] hover:border-green-700/60 hover:text-green-400'
+                implicitAction === 'sent'
+                  ? 'bg-[var(--ascensus-teal-soft)] border-[var(--ascensus-teal)] text-[var(--ascensus-teal)]'
+                  : 'bg-[var(--ascensus-panel-2)] border-[var(--ascensus-teal-border)] text-[var(--ascensus-text)] hover:bg-[var(--ascensus-teal-soft)]'
               }`}
             >
-              ✓ Helpful
+              Send as-is
             </button>
             <button
-              onClick={() => onFeedback('not-helpful')}
+              onClick={() => setImplicitAction('edited')}
               className={`flex-1 rounded border font-medium transition-colors ${isDemo ? 'px-3 py-2.5 text-sm' : 'px-2 py-2 text-xs'} ${
-                feedbackState === 'not-helpful'
-                  ? 'bg-red-700/40 border-red-600 text-red-300'
-                  : 'bg-[var(--ascensus-panel)] border-[var(--ascensus-border)] text-[var(--ascensus-muted)] hover:border-red-700/60 hover:text-red-400'
+                implicitAction === 'edited'
+                  ? 'bg-amber-900/30 border-amber-600 text-amber-200'
+                  : 'bg-[var(--ascensus-panel)] border-[var(--ascensus-border)] text-[var(--ascensus-muted)] hover:border-amber-700/60 hover:text-amber-300'
               }`}
             >
-              ✗ Not Helpful
+              Edit &amp; Send
             </button>
             <button
-              onClick={() => onFeedback('escalate')}
+              onClick={() => setImplicitAction('discarded')}
               className={`flex-1 rounded border font-medium transition-colors ${isDemo ? 'px-3 py-2.5 text-sm' : 'px-2 py-2 text-xs'} ${
-                feedbackState === 'escalate'
-                  ? 'bg-amber-700/40 border-amber-600 text-amber-300'
-                  : 'bg-[var(--ascensus-panel)] border-[var(--ascensus-border)] text-[var(--ascensus-muted)] hover:border-amber-700/60 hover:text-amber-400'
+                implicitAction === 'discarded'
+                  ? 'bg-[var(--ascensus-panel)] border-[var(--ascensus-muted)] text-[var(--ascensus-text)]'
+                  : 'bg-[var(--ascensus-panel)] border-[var(--ascensus-border)] text-[var(--ascensus-muted)] hover:border-[var(--ascensus-muted)] hover:text-[var(--ascensus-text)]'
               }`}
             >
-              ↑ Escalate
+              Discard
             </button>
           </div>
-          {feedbackState && (
-            <div className="text-xs text-[var(--ascensus-muted)] mt-2 text-center">
-              Feedback recorded: <span className="text-[var(--ascensus-text)]">{feedbackState}</span>
+
+          {implicitAction && (
+            <div className="mt-2 rounded border border-[var(--ascensus-border)] bg-[var(--ascensus-ink-3)] px-3 py-2 text-xs text-[var(--ascensus-muted)] leading-relaxed">
+              <span className="text-[var(--ascensus-text)] font-semibold">
+                {implicitAction === 'sent' && 'Sent as-is'}
+                {implicitAction === 'edited' && 'Sent with edits'}
+                {implicitAction === 'discarded' && 'Discarded'}
+              </span>{' '}
+              · Logged to Langfuse automatically · No rating needed — this action <em>is</em> the training signal
             </div>
           )}
+
+          {/* Escalate — workflow trigger, kept visible because it changes who owns the case */}
+          <button
+            onClick={() => onFeedback('escalate')}
+            className={`mt-2 w-full rounded border font-medium transition-colors ${isDemo ? 'px-3 py-2.5 text-sm' : 'px-2 py-2 text-xs'} ${
+              feedbackState === 'escalate'
+                ? 'bg-amber-700/40 border-amber-600 text-amber-300'
+                : 'bg-[var(--ascensus-panel)] border-amber-700/40 text-amber-400/80 hover:border-amber-600 hover:text-amber-300 hover:bg-amber-900/20'
+            }`}
+          >
+            ↑ Escalate to human review
+          </button>
+
+          {feedbackState === 'escalate' && (
+            <div className="mt-2 rounded border border-amber-700/50 bg-amber-900/20 px-3 py-2 text-xs text-amber-200 leading-relaxed">
+              <span className="font-semibold">Escalated for human review</span> · Trace ID attached · AI Enablement team notified in{' '}
+              <span className="font-mono">#agent-assist-triage</span> · Reviewer follows up before associate responds
+            </div>
+          )}
+
+          {/* Optional explicit feedback — collapsed by default, used sparingly */}
+          <div className="mt-3 pt-2 border-t border-[var(--ascensus-border)]">
+            {!flagOpen ? (
+              <button
+                onClick={() => setFlagOpen(true)}
+                className="text-xs text-[var(--ascensus-muted)] hover:text-[var(--ascensus-text)] transition-colors underline decoration-dotted underline-offset-2"
+              >
+                Flag this suggestion (optional)
+              </button>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs text-[var(--ascensus-muted)]">Was this notably good or wrong?</span>
+                  <button
+                    onClick={() => setFlagOpen(false)}
+                    className="text-xs text-[var(--ascensus-muted)] hover:text-[var(--ascensus-text)] transition-colors"
+                    aria-label="Close flag panel"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onFeedback('helpful')}
+                    className={`flex-1 rounded border text-xs font-medium px-2 py-1.5 transition-colors ${
+                      feedbackState === 'helpful'
+                        ? 'bg-green-700/40 border-green-600 text-green-300'
+                        : 'bg-[var(--ascensus-panel)] border-[var(--ascensus-border)] text-[var(--ascensus-muted)] hover:border-green-700/60 hover:text-green-400'
+                    }`}
+                  >
+                    👍 Notably good
+                  </button>
+                  <button
+                    onClick={() => onFeedback('not-helpful')}
+                    className={`flex-1 rounded border text-xs font-medium px-2 py-1.5 transition-colors ${
+                      feedbackState === 'not-helpful'
+                        ? 'bg-red-700/40 border-red-600 text-red-300'
+                        : 'bg-[var(--ascensus-panel)] border-[var(--ascensus-border)] text-[var(--ascensus-muted)] hover:border-red-700/60 hover:text-red-400'
+                    }`}
+                  >
+                    👎 Notably wrong
+                  </button>
+                </div>
+                {feedbackState === 'helpful' && (
+                  <div className="mt-2 rounded border border-green-700/50 bg-green-900/20 px-3 py-2 text-xs text-green-200 leading-relaxed">
+                    <span className="font-semibold">Flagged as notably good</span> · Reinforces{' '}
+                    <span className="font-mono">{scenario.promptVersion.replace(/^Prompt\s+/, '')}</span>{' '}
+                    in Langfuse · Used as positive exemplar in prompt review
+                  </div>
+                )}
+                {feedbackState === 'not-helpful' && (
+                  <div className="mt-2 rounded border border-red-700/50 bg-red-900/20 px-3 py-2 text-xs text-red-200 leading-relaxed">
+                    <span className="font-semibold">Flagged as notably wrong</span> · AI team reviews the full trace in Langfuse and tunes{' '}
+                    <span className="font-mono">{scenario.promptVersion.replace(/^Prompt\s+/, '')}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

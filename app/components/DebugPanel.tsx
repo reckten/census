@@ -5,7 +5,29 @@ import { ScenarioData, Mode, TraceStatus, TraceStep } from '@/types';
 interface Props {
   scenario: ScenarioData;
   mode: Mode;
+  // Real Langfuse traceId returned by /api/explain. null until the request
+  // resolves; may stay null if the server couldn't reach Langfuse.
+  traceId?: string | null;
 }
+
+// Public Langfuse host — safe to expose to the browser. Falls back to
+// cloud.langfuse.com if the env var isn't set so the deep-link still works.
+const LANGFUSE_HOST =
+  process.env.NEXT_PUBLIC_LANGFUSE_HOST ?? 'https://cloud.langfuse.com';
+
+// Span names emitted by /api/explain — kept in sync with that route so the
+// Debug panel labels match what an engineer actually sees in Langfuse.
+const LANGFUSE_SPANS: Array<{
+  name: string;
+  surface: string;
+  jdBullet: string;
+}> = [
+  { name: 'intent-classification',     surface: 'LLM',      jdBullet: 'LLM responses and prompts' },
+  { name: 'knowledge-retrieval',       surface: 'Workflow', jdBullet: 'Agent workflows and orchestration' },
+  { name: 'salesforce-crm-tool-call',  surface: 'Tool/MCP', jdBullet: 'Tool/MCP calls and backend integrations' },
+  { name: 'fallback-check',            surface: 'Workflow', jdBullet: 'Agent workflows and orchestration' },
+  { name: 'why-this-suggestion',       surface: 'LLM',      jdBullet: 'LLM responses and prompts' },
+];
 
 const TRAINING_NOTE =
   'The pipeline trace — if Agent Assist behaves unexpectedly, this is what to screenshot when filing a ticket to the AI team';
@@ -251,7 +273,7 @@ function AzureTicketModal({
   );
 }
 
-export default function DebugPanel({ scenario, mode }: Props) {
+export default function DebugPanel({ scenario, mode, traceId }: Props) {
   const isDebug    = mode === 'debug';
   const isTraining = mode === 'training';
 
@@ -391,23 +413,108 @@ export default function DebugPanel({ scenario, mode }: Props) {
           </div>
         </div>
 
-        {/* Raw log */}
-        <div className={`border rounded overflow-hidden ${isDebug ? 'border-[var(--ascensus-border-strong)]' : 'border-[var(--ascensus-border)]'}`}>
-          <button
-            onClick={() => setLogsOpen(!logsOpen)}
-            className={`w-full px-3 py-2 text-xs text-[var(--ascensus-muted)] flex items-center justify-between transition-colors ${
-              isDebug ? 'bg-[var(--ascensus-panel)] hover:bg-[var(--ascensus-panel-2)]' : 'bg-[var(--ascensus-ink-2)] hover:bg-[var(--ascensus-panel)]'
-            }`}
-          >
-            <span className="font-semibold uppercase tracking-wider">Raw Log</span>
-            <span className="font-mono text-[var(--ascensus-muted)]">{logsOpen ? '▲' : '▼'}</span>
-          </button>
-          {logsOpen && (
-            <pre className={`p-3 text-xs font-mono overflow-x-auto leading-relaxed max-h-80 overflow-y-auto whitespace-pre-wrap break-all ${isDebug ? 'text-[var(--ascensus-text)] bg-[var(--ascensus-ink-3)]' : 'text-[var(--ascensus-muted)] bg-[var(--ascensus-ink-3)]'}`}>
-              {buildMockLog(scenario)}
-            </pre>
-          )}
-        </div>
+        {/* Langfuse observability — the actual tool an engineer uses to
+            reproduce issues across LLM prompts, agent workflows, and tool
+            calls (the JD's investigate/triage loop). Shown in Debug + Training. */}
+        {(isDebug || isTraining) && (
+          <div className="border rounded overflow-hidden border-[var(--ascensus-border-strong)]">
+            <div className="px-3 py-2 bg-[var(--ascensus-panel)] border-b border-[var(--ascensus-border-strong)] flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--ascensus-text)]">
+                  Langfuse Trace
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--ascensus-ink-3)] border border-[var(--ascensus-border)] text-[var(--ascensus-muted)]">
+                  observability
+                </span>
+              </div>
+              {isDebug && traceId && (
+                <a
+                  href={`${LANGFUSE_HOST}/trace/${traceId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs px-2 py-1 rounded border border-[var(--ascensus-teal-border)] text-[var(--ascensus-teal)] hover:bg-[var(--ascensus-teal-soft)] transition-colors font-medium whitespace-nowrap"
+                >
+                  Open in Langfuse ↗
+                </a>
+              )}
+            </div>
+
+            <div className="p-3 flex flex-col gap-2.5 bg-[var(--ascensus-ink-3)]">
+              {isTraining && (
+                <p className="text-[11px] italic text-[var(--ascensus-teal)] opacity-80 leading-snug">
+                  When a user reports an issue, Langfuse is where you reproduce it — every
+                  LLM prompt, agent step, and tool call for this case is captured as a span.
+                </p>
+              )}
+
+              {/* traceId row */}
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="text-[var(--ascensus-muted)] shrink-0 w-24">trace_id</span>
+                {traceId ? (
+                  <span className="text-[var(--ascensus-text)] truncate" title={traceId}>
+                    {traceId}
+                  </span>
+                ) : (
+                  <span className="text-[var(--ascensus-muted)] italic">awaiting trace…</span>
+                )}
+              </div>
+
+              {/* Spans actually emitted by /api/explain, grouped by JD surface */}
+              <div className="rounded border border-[var(--ascensus-border)] overflow-hidden">
+                {LANGFUSE_SPANS.map((span, i) => (
+                  <div
+                    key={span.name}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 font-mono text-xs ${
+                      i < LANGFUSE_SPANS.length - 1 ? 'border-b border-[var(--ascensus-border)]' : ''
+                    }`}
+                  >
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 w-20 text-center ${
+                        span.surface === 'LLM'
+                          ? 'bg-blue-900/30 border-blue-700/50 text-blue-300'
+                          : span.surface === 'Tool/MCP'
+                          ? 'bg-purple-900/30 border-purple-700/50 text-purple-300'
+                          : 'bg-[var(--ascensus-ink-2)] border-[var(--ascensus-border)] text-[var(--ascensus-muted)]'
+                      }`}
+                    >
+                      {span.surface}
+                    </span>
+                    <span className="text-[var(--ascensus-text)] truncate">{span.name}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* JD-surface coverage map — explicit so a reviewer can see we
+                  cover each of the four investigation surfaces. */}
+              <div className="text-[10px] text-[var(--ascensus-muted)] leading-snug pt-1">
+                <span className="uppercase tracking-wider font-semibold text-[var(--ascensus-muted)]">
+                  Investigation surfaces:
+                </span>{' '}
+                LLM prompts &amp; responses · agent workflow orchestration ·
+                tool / MCP calls (Salesforce) · associate feedback score
+                {isDebug && <> · linked to Azure DevOps ticket below</>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Raw log — Debug mode only (engineering view) */}
+        {isDebug && (
+          <div className="border rounded overflow-hidden border-[var(--ascensus-border-strong)]">
+            <button
+              onClick={() => setLogsOpen(!logsOpen)}
+              className="w-full px-3 py-2 text-xs text-[var(--ascensus-muted)] flex items-center justify-between transition-colors bg-[var(--ascensus-panel)] hover:bg-[var(--ascensus-panel-2)]"
+            >
+              <span className="font-semibold uppercase tracking-wider">Raw Log</span>
+              <span className="font-mono text-[var(--ascensus-muted)]">{logsOpen ? '▲' : '▼'}</span>
+            </button>
+            {logsOpen && (
+              <pre className="p-3 text-xs font-mono overflow-x-auto leading-relaxed max-h-80 overflow-y-auto whitespace-pre-wrap break-all text-[var(--ascensus-text)] bg-[var(--ascensus-ink-3)]">
+                {buildMockLog(scenario)}
+              </pre>
+            )}
+          </div>
+        )}
 
         {/* Create Azure DevOps Ticket — Debug mode only */}
         {isDebug && (

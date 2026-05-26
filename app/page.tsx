@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import TopBar from '@/app/components/TopBar';
 import InteractionPanel from '@/app/components/InteractionPanel';
 import AssistPanel from '@/app/components/AssistPanel';
@@ -34,13 +34,23 @@ export default function Home() {
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, string>>({});
 
-  // traceId returned by the server — used to score feedback via /api/feedback
+  // Real Langfuse traceId returned by the server. State (not just a ref) so
+  // DebugPanel re-renders the "Open in Langfuse" deep link when it arrives.
+  const [activeTraceId, setActiveTraceId] = useState<string | null>(null);
   const activeTraceIdRef = useRef<string | null>(null);
 
   const scenario = scenarios[activeScenario];
 
+  // Clear stale traceId immediately when scenario flips; ExplainabilityPanel
+  // will fire a fresh /api/explain request and call handleTraceReady again.
+  useEffect(() => {
+    activeTraceIdRef.current = null;
+    setActiveTraceId(null);
+  }, [activeScenario]);
+
   const handleTraceReady = (traceId: string) => {
     activeTraceIdRef.current = traceId;
+    setActiveTraceId(traceId);
   };
 
   const handleFeedback = (type: 'helpful' | 'not-helpful' | 'escalate') => {
@@ -112,7 +122,7 @@ export default function Home() {
         />
         {/* Debug panel hidden entirely in Demo mode */}
         {mode !== 'demo' && (
-          <DebugPanel scenario={scenario} mode={mode} />
+          <DebugPanel scenario={scenario} mode={mode} traceId={activeTraceId} />
         )}
       </div>
 
