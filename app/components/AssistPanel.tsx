@@ -9,7 +9,7 @@ interface Props {
 }
 
 const TRAINING_NOTE =
-  'Verify before sending — especially under 80% confidence';
+  'Confidence is the model’s self-rated certainty, not a guarantee of accuracy — treat it as a calibration signal, not a verdict';
 
 // ── Confidence helpers (thresholds: green ≥80, amber 60-79, red <60) ─────────
 function confidenceLevel(score: number): 'high' | 'medium' | 'low' {
@@ -68,6 +68,16 @@ export default function AssistPanel({ scenario, mode, onFeedback, feedbackState 
   const isTraining = mode === 'training';
 
   const hasFailure = scenario.failureDomainTags && scenario.failureDomainTags.length > 0;
+
+  // Fallback = confidence below threshold OR explicit fallback tag (e.g. tool failure).
+  // Used to flag the response as auto-generated guardrail output, not a normal recommendation.
+  const isFallback =
+    scenario.confidence < 70 ||
+    (scenario.failureDomainTags?.includes('FALLBACK_TRIGGERED') ?? false);
+  const fallbackReason =
+    scenario.failureDomainTags?.includes('FALLBACK_TRIGGERED')
+      ? 'Tool call failed — safe clarifying response generated'
+      : `Confidence ${scenario.confidence}% below 70% threshold — clarifying response generated`;
 
   // Typography scale: Demo gets larger, Debug shrinks slightly
   const responseTextClass = isDemo ? 'text-sm leading-relaxed' : 'text-xs leading-relaxed';
@@ -136,7 +146,23 @@ export default function AssistPanel({ scenario, mode, onFeedback, feedbackState 
 
         {/* Suggested response */}
         <div>
-          <div className={sectionLabelClass}>Suggested Response</div>
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <div className={`${sectionLabelClass} mb-0`}>
+              {isFallback ? 'Fallback Response Sent' : 'Suggested Response'}
+            </div>
+            {isFallback && (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-amber-300 bg-amber-900/30 border border-amber-700/60 rounded px-2 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+                Auto-sent · Awaiting reply
+              </span>
+            )}
+          </div>
+          {isFallback && (
+            <div className="mb-2 rounded border border-amber-700/60 bg-amber-900/15 px-3 py-2 text-xs text-amber-200 leading-relaxed">
+              <span className="font-semibold text-amber-300">Why a fallback was sent:</span>{' '}
+              {fallbackReason}. The associate should follow up once the participant responds.
+            </div>
+          )}
           {/* In Demo: show failure tags inside the response block if present */}
           {isDemo && hasFailure && (
             <div className="flex flex-wrap gap-1.5 mb-2">
@@ -159,7 +185,11 @@ export default function AssistPanel({ scenario, mode, onFeedback, feedbackState 
             value={scenario.suggestedResponse}
             className={`w-full bg-[var(--ascensus-panel)] border border-[var(--ascensus-border)] rounded p-3 ${responseTextClass} text-[var(--ascensus-text)] resize-none focus:outline-none focus:border-[var(--ascensus-teal)] ${responseMinHeight}`}
           />
-          <div className="text-xs text-[var(--ascensus-muted)] mt-1">Associate may edit before sending</div>
+          <div className="text-xs text-[var(--ascensus-muted)] mt-1">
+            {isFallback
+              ? 'This response was sent automatically — associate prepares follow-up after participant replies'
+              : 'Associate may edit before sending'}
+          </div>
         </div>
 
         {/* Next action */}

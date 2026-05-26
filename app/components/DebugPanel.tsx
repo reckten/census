@@ -8,7 +8,7 @@ interface Props {
 }
 
 const TRAINING_NOTE =
-  'When something goes wrong, this shows which step failed';
+  'The pipeline trace — if Agent Assist behaves unexpectedly, this is what to screenshot when filing a ticket to the AI team';
 
 function StatusIcon({ status }: { status: TraceStatus }) {
   if (status === 'success') return <span className="text-green-400 font-bold">✓</span>;

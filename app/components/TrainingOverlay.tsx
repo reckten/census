@@ -10,41 +10,41 @@ type Level = 'info' | 'warning' | 'danger';
 const trainingContent: Record<number, { message: string; level: Level }> = {
   1: {
     message:
-      'This is a high-confidence response. The system retrieved a clear policy match. Associates should still confirm the participant has portal access before closing.',
+      'A clean run end-to-end: one strong document match (0.94), no fallback, no failed tool calls. When you see this shape, the model’s output is well-grounded — but high confidence isn’t a free pass, it just means there’s nothing in the trace pushing back on the answer.',
     level: 'info',
   },
   2: {
     message:
-      'Confidence is below threshold. Never send a suggested response under 70% without verifying missing context. The system flagged two conflicting documents — this is a signal to gather more info.',
+      'Confidence dropped because retrieval returned two partial matches that don’t fully resolve the question. The model knows it’s under-informed and asked a clarifying question instead of guessing — that’s the guardrail working as designed. The "fallback" here is a feature, not an error.',
     level: 'warning',
   },
   3: {
     message:
-      'A backend failure triggered a safe fallback. The associate should NOT attempt the update online. Escalate using the manual workflow. Notice the Known Issue Pattern tag — this should be escalated to engineering.',
+      'The model itself was confident (89%), but the Salesforce CRM tool call failed (3s timeout). The system fell back to a safe, generic response rather than risk acting on stale data. This is a tool-layer failure, not a model failure — and the recurring pattern is exactly what to flag back to engineering.',
     level: 'danger',
   },
 };
 
 const escalationRules = [
   {
-    trigger: 'Confidence < 70%',
-    action: 'Gather missing context before responding',
+    trigger: 'Confidence %',
+    action: 'Model’s self-rated certainty — calibration signal, not accuracy',
   },
   {
-    trigger: 'TOOL_CALL_FAILED',
-    action: 'Do not proceed online — use manual workflow',
+    trigger: 'Match score',
+    action: 'How well a knowledge-base doc matched — < 0.65 = weak retrieval',
   },
   {
     trigger: 'FALLBACK_TRIGGERED',
-    action: 'Review fallback reason before sending',
+    action: 'Guardrail fired — model output replaced by safe template',
   },
   {
-    trigger: 'Known Issue Pattern',
-    action: 'Escalate to engineering, not just ops',
+    trigger: 'TOOL_CALL_FAILED',
+    action: 'Backend/tool issue, not the LLM — worth a ticket to AI team',
   },
   {
-    trigger: 'RETRIEVAL_AMBIGUOUS',
-    action: 'Verify with participant before confirming',
+    trigger: 'Recurring pattern',
+    action: 'Same failure 3+ times this week → escalate as systemic',
   },
 ];
 
@@ -83,7 +83,7 @@ export default function TrainingOverlay({ scenario }: Props) {
         </span>
         <div>
           <div className="text-xs font-semibold mb-1 uppercase tracking-wider">
-            Training Guidance — Scenario {scenario.id}
+            What Agent Assist Did Here — Scenario {scenario.id}
           </div>
           <p className="text-xs leading-relaxed">{content.message}</p>
         </div>
@@ -92,7 +92,7 @@ export default function TrainingOverlay({ scenario }: Props) {
       {/* When to escalate quick-reference */}
       <div className="lg:w-96 bg-[var(--ascensus-ink-2)] border border-[var(--ascensus-border)] rounded p-3 shrink-0">
         <div className="text-xs font-semibold text-[var(--ascensus-text)] uppercase tracking-wider mb-2.5">
-          When to Escalate — Quick Reference
+          Reading the AI — Signal Glossary
         </div>
         <div className="space-y-2">
           {escalationRules.map((rule) => (

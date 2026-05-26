@@ -241,16 +241,18 @@
     align-self: center;
   }
 
-  /* ===== TAB 2 — Swimlane ===== */
+  /* ===== TAB 2 — Swimlane (column-time grid) ===== */
   .swimlane-wrap {
     overflow-x: auto;
     padding-bottom: 12px;
   }
   .swimlane {
     display: grid;
-    grid-template-columns: 180px 1fr;
+    /* 1 label column + 7 time columns. Each time column = node + arrow. */
+    grid-template-columns: 180px repeat(7, minmax(170px, 1fr) 22px);
+    /* trim trailing arrow column visually */
     gap: 0;
-    min-width: 980px;
+    min-width: 1280px;
     border: 1px solid var(--border);
     border-radius: 6px;
     background: var(--bg-elev);
@@ -266,32 +268,50 @@
     color: var(--text);
     display: flex;
     align-items: center;
-    min-height: 90px;
+    min-height: 96px;
   }
-  .lane-track {
-    padding: 14px 16px;
+  .lane-cell {
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-height: 90px;
-    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding: 10px 8px;
+    min-height: 96px;
     position: relative;
   }
-  .swimlane > div:nth-last-child(-n+2) { border-bottom: none; }
+  .lane-cell.empty { /* invisible */
+    padding: 0;
+  }
+  .arrow-cell {
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 96px;
+    color: var(--text-faint);
+  }
+  .arrow-cell.active { color: var(--green); }
+  /* remove bottom border on last row */
+  .swimlane > .row-last { border-bottom: none; }
+
+  .lane-cell-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
 
   .step-node {
     background: var(--bg-elev-2);
     border: 1px solid var(--green);
     border-radius: 6px;
-    padding: 8px 12px;
+    padding: 8px 10px;
     cursor: pointer;
     transition: background 0.12s, transform 0.08s;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
-    min-width: 180px;
-    max-width: 260px;
+    width: 100%;
     position: relative;
   }
   .step-node:hover { background: #1f2535; }
@@ -309,30 +329,31 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    margin-top: 1px;
   }
   .step-label {
     font-size: 12px;
     color: var(--text);
-    line-height: 1.3;
-  }
-  .step-arrow {
-    color: var(--green);
-    font-family: var(--mono);
-    font-size: 14px;
-    opacity: 0.7;
+    line-height: 1.35;
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Popover */
   .popover {
-    position: absolute;
-    z-index: 30;
+    position: fixed;
+    z-index: 9999;
     background: #1a1f2c;
     border: 1px solid var(--border-strong);
     border-radius: 6px;
     padding: 14px 16px;
     min-width: 280px;
     max-width: 340px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    max-height: 60vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     display: none;
   }
   .popover.show { display: block; }
@@ -695,7 +716,7 @@
   .popover-overlay {
     position: fixed;
     inset: 0;
-    z-index: 20;
+    z-index: 9998;
     display: none;
   }
   .popover-overlay.show { display: block; }
@@ -844,19 +865,7 @@
     <p class="panel-subtitle">A clean call from intake to compliance log. Click any node for step detail.</p>
 
     <div class="swimlane-wrap">
-      <div class="swimlane" id="swimlane">
-        <div class="lane-label">Participant</div>
-        <div class="lane-track" data-lane="participant"></div>
-
-        <div class="lane-label">Associate + Agent Assist</div>
-        <div class="lane-track" data-lane="associate"></div>
-
-        <div class="lane-label">ARK (Agent Engine)</div>
-        <div class="lane-track" data-lane="ark"></div>
-
-        <div class="lane-label">Salesforce CRM / Chorus</div>
-        <div class="lane-track" data-lane="crm"></div>
-      </div>
+      <div class="swimlane" id="swimlane"></div>
     </div>
 
     <div class="popover-overlay" id="popover-overlay"></div>
@@ -865,7 +874,7 @@
   <!-- ============ TAB 3 ============ -->
   <section class="panel" id="t3">
     <h2 class="panel-title">Where Things Break — The Three Failure Domains</h2>
-    <p class="panel-subtitle">Every issue an associate-engineer triages maps to one of these. Knowing which one collapses the diagnostic time.</p>
+    <p class="panel-subtitle">Every issue an engineer triages maps to one of these. Knowing which one collapses the diagnostic time.</p>
 
     <div class="fail-grid">
       <div class="fail-card" data-sev="amber">
@@ -912,7 +921,7 @@
     </div>
 
     <div class="diag-sequence-wrap">
-      <div class="diag-sequence-title">Diagnostic Sequence — What an Associate Engineer Actually Does</div>
+      <div class="diag-sequence-title">Diagnostic Sequence — What an Engineer Actually Does</div>
       <div class="diag-sequence" id="diag-sequence">
         <span class="diag-step" data-diag="report">User reports bad answer</span>
         <span class="diag-arrow">→</span>
@@ -1083,51 +1092,151 @@
       failure: 'Workflow stall — case stuck in queue; surfaces in Chorus ops console, not Langfuse.' },
   ];
 
-  function buildSwimlane() {
-    const lanes = {
-      participant: document.querySelector('[data-lane="participant"]'),
-      associate: document.querySelector('[data-lane="associate"]'),
-      ark: document.querySelector('[data-lane="ark"]'),
-      crm: document.querySelector('[data-lane="crm"]'),
-      chorus: document.querySelector('[data-lane="chorus"]'),
-    };
-    // Map "chorus" lane to crm track (combined lane in spec)
-    lanes.chorus = lanes.crm;
+  // Lanes (rows) in display order
+  const lanes = [
+    { id: 'participant', label: 'Participant' },
+    { id: 'associate',   label: 'Associate + Agent Assist' },
+    { id: 'ark',         label: 'ARK (Agent Engine)' },
+    { id: 'crm',         label: 'Salesforce CRM / Chorus' },
+  ];
 
-    // We'll add steps in order; arrows shown between consecutive steps within the same lane visually.
-    // For cross-lane flow, the visual cue is the increasing step number.
-    let prevLane = null;
-    steps.forEach((s, idx) => {
-      const node = document.createElement('div');
-      node.className = 'step-node';
-      node.dataset.step = s.n;
-      node.tabIndex = 0;
-      node.innerHTML = `<span class="step-num">${s.n}</span><span class="step-label">${s.label}</span>`;
-      node.addEventListener('click', e => {
-        e.stopPropagation();
-        showPopover(node, s);
-      });
-      node.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          showPopover(node, s);
+  // Time columns — each column is one moment. 7 columns total.
+  const columns = [
+    { stepNums: [1] },       // C1 Participant
+    { stepNums: [2] },       // C2 Associate
+    { stepNums: [3] },       // C3 ARK intent
+    { stepNums: [4] },       // C4 ARK retrieval
+    { stepNums: [5] },       // C5 Salesforce CRM lookup
+    { stepNums: [6] },       // C6 ARK LLM generation
+    { stepNums: [7, 8] },    // C7 Associate display + send (stacked)
+    { stepNums: [9] },       // C8 Chorus logs
+  ];
+
+  function rowForStep(s) {
+    return s.lane === 'chorus' ? 'crm' : s.lane;
+  }
+
+  function buildSwimlane() {
+    const grid = document.getElementById('swimlane');
+    grid.innerHTML = '';
+
+    const numCols = columns.length;
+    const tpl = ['180px'];
+    for (let c = 0; c < numCols; c++) {
+      tpl.push('minmax(170px, 1fr)');
+      if (c < numCols - 1) tpl.push('22px');
+    }
+    grid.style.gridTemplateColumns = tpl.join(' ');
+
+    lanes.forEach((lane, rowIdx) => {
+      const isLast = rowIdx === lanes.length - 1;
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'lane-label' + (isLast ? ' row-last' : '');
+      labelEl.textContent = lane.label;
+      grid.appendChild(labelEl);
+
+      columns.forEach((col, colIdx) => {
+        const stepsHere = col.stepNums
+          .map(n => steps.find(s => s.n === n))
+          .filter(s => rowForStep(s) === lane.id);
+
+        const cell = document.createElement('div');
+        cell.className = 'lane-cell' + (isLast ? ' row-last' : '');
+        if (stepsHere.length === 0) {
+          cell.classList.add('empty');
+        } else {
+          const inner = document.createElement('div');
+          inner.className = 'lane-cell-inner';
+          stepsHere.forEach(s => {
+            const node = document.createElement('div');
+            node.className = 'step-node';
+            node.dataset.step = s.n;
+            node.tabIndex = 0;
+            node.innerHTML = `<span class="step-num">${s.n}</span><span class="step-label">${s.label}</span>`;
+            node.addEventListener('click', e => {
+              e.stopPropagation();
+              showPopover(node, s);
+            });
+            node.addEventListener('keydown', e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                showPopover(node, s);
+              }
+            });
+            inner.appendChild(node);
+          });
+          cell.appendChild(inner);
+        }
+        grid.appendChild(cell);
+
+        if (colIdx < numCols - 1) {
+          const arr = document.createElement('div');
+          arr.className = 'arrow-cell' + (isLast ? ' row-last' : '');
+          const thisLaneHasStep = stepsHere.length > 0;
+          const nextLaneHasStep = columns[colIdx + 1].stepNums.some(n => {
+            const s = steps.find(x => x.n === n);
+            return rowForStep(s) === lane.id;
+          });
+          if (thisLaneHasStep || nextLaneHasStep) {
+            arr.classList.add('active');
+            arr.textContent = '→';
+          }
+          grid.appendChild(arr);
         }
       });
-      lanes[s.lane].appendChild(node);
-      if (idx < steps.length - 1 && steps[idx + 1].lane === s.lane) {
-        const arr = document.createElement('span');
-        arr.className = 'step-arrow';
-        arr.textContent = '→';
-        lanes[s.lane].appendChild(arr);
-      }
-      prevLane = s.lane;
     });
   }
   buildSwimlane();
 
-  // Popover
+  // Popover with smart edge-aware positioning
   let activePopover = null;
   const overlay = document.getElementById('popover-overlay');
+
+  function positionPopover(pop, anchor) {
+    // pop is position: fixed, attached to body. Choose top/left based on anchor's viewport rect.
+    const anchorRect = anchor.getBoundingClientRect();
+    const margin = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Measure popover (already in DOM but hidden offscreen for measurement)
+    pop.style.visibility = 'hidden';
+    pop.style.left = '0px';
+    pop.style.top = '0px';
+    const popRect = pop.getBoundingClientRect();
+    const popW = popRect.width;
+    const popH = popRect.height;
+
+    // Vertical: prefer below, flip above if it would overflow bottom
+    let top;
+    const spaceBelow = vh - anchorRect.bottom - margin;
+    const spaceAbove = anchorRect.top - margin;
+    if (popH <= spaceBelow) {
+      top = anchorRect.bottom + 6;
+    } else if (popH <= spaceAbove) {
+      top = anchorRect.top - popH - 6;
+    } else {
+      // Neither side fits cleanly — clamp to viewport, max-height CSS will handle scroll
+      top = Math.max(margin, vh - popH - margin);
+    }
+
+    // Horizontal: prefer left-aligned to anchor, flip to right-aligned if it overflows right edge
+    let left;
+    if (anchorRect.left + popW + margin <= vw) {
+      left = anchorRect.left;
+    } else if (anchorRect.right - popW >= margin) {
+      left = anchorRect.right - popW;
+    } else {
+      // Clamp inside viewport
+      left = Math.max(margin, vw - popW - margin);
+    }
+
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+    pop.style.visibility = '';
+  }
+
   function showPopover(anchor, step) {
     closeAllPopovers();
     const pop = document.createElement('div');
@@ -1139,11 +1248,8 @@
       <div class="popover-row"><div class="popover-key">Latency</div><div class="popover-val">${step.latency}</div></div>
       <div class="popover-row"><div class="popover-key">Failure here</div><div class="popover-val">${step.failure}</div></div>
     `;
-    anchor.appendChild(pop);
-    // Position: append inside step-node so it sits relative.
-    pop.style.position = 'absolute';
-    pop.style.top = '110%';
-    pop.style.left = '0';
+    document.body.appendChild(pop);
+    positionPopover(pop, anchor);
     activePopover = pop;
     overlay.classList.add('show');
     pop.querySelector('.popover-close').addEventListener('click', e => {
@@ -1158,12 +1264,20 @@
   }
   overlay.addEventListener('click', closeAllPopovers);
   document.addEventListener('click', e => {
-    if (activePopover && !activePopover.contains(e.target) && !e.target.closest('.step-node')) {
+    if (
+      activePopover &&
+      !activePopover.contains(e.target) &&
+      !e.target.closest('.step-node') &&
+      !e.target.closest('.diag-step')
+    ) {
       closeAllPopovers();
     }
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeAllPopovers();
+  });
+  window.addEventListener('resize', () => {
+    if (activePopover) closeAllPopovers();
   });
 
   // ===== Tab 3 — Diagnostic sequence tooltips =====
@@ -1182,16 +1296,13 @@
       closeAllPopovers();
       const pop = document.createElement('div');
       pop.className = 'popover show';
-      pop.style.position = 'absolute';
-      pop.style.top = '110%';
-      pop.style.left = '0';
       pop.innerHTML = `
         <button class="popover-close" aria-label="Close">✕</button>
         <div class="popover-title">${s.textContent}</div>
         <div class="popover-row"><div class="popover-val">${diagDetail[s.dataset.diag]}</div></div>
       `;
-      s.style.position = 'relative';
-      s.appendChild(pop);
+      document.body.appendChild(pop);
+      positionPopover(pop, s);
       activePopover = pop;
       overlay.classList.add('show');
       pop.querySelector('.popover-close').addEventListener('click', ev => {

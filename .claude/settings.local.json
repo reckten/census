@@ -21,7 +21,9 @@
       "Bash(git push *)",
       "Bash(npx vercel *)",
       "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse goto *)",
-      "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse select *)"
+      "Bash(/c/Users/reckt/.claude/skills/gstack/browse/dist/browse select *)",
+      "Skill(browse)",
+      "Skill(browse:*)"
     ]
   }
 }
